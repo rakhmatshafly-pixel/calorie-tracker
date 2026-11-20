@@ -51,7 +51,7 @@
           ⚖️ Berat & Target
         </button>
         <button onclick="openSheetModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs sm:text-sm font-semibold transition">
-          🔗 Sheets
+          🔗 Sinkron Excel
         </button>
         <button id="installAppBtn" onclick="triggerInstall()" class="hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold transition">
           📲 Instal App
@@ -68,7 +68,7 @@
             <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Progres Berat Badan</p>
             <div class="flex items-baseline gap-2.5 mt-1">
               <span id="weightCurrentDisplay" class="text-3xl sm:text-4xl font-extrabold text-slate-900">89,0 kg</span>
-              <span id="weightDiffBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">-2,0 kg (1 bln)</span>
+              <span id="weightDiffBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">-2,0 kg</span>
             </div>
           </div>
           <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">📉</div>
@@ -310,19 +310,29 @@
     </div>
   </div>
 
-  <!-- MODAL 4: HUBUNGKAN GOOGLE SHEETS -->
+  <!-- MODAL 4: SINKRONISASI EXCEL / GOOGLE SHEETS -->
   <div id="sheetModal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-4">
       <div class="flex items-center justify-between">
-        <h3 class="text-lg font-extrabold text-slate-900">🔗 Hubungkan Google Sheets</h3>
+        <h3 class="text-lg font-extrabold text-slate-900">🔗 Sinkron Excel (Google Sheets)</h3>
         <button onclick="closeModal('sheetModal')" class="text-slate-400 hover:text-slate-700 font-bold text-lg">✕</button>
       </div>
-      <p class="text-xs text-slate-600">Tempel URL Web App Apps Script (<code>/exec</code>) Anda untuk sinkronisasi otomatis ke Google Sheets.</p>
-      <input id="sheetUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs">
-      <div class="flex gap-2">
-        <button onclick="saveSheetUrlAndPull()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs">Simpan & Tarik Data</button>
-        <button onclick="pushToGoogleSheets()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs">Kirim Ulang</button>
+      <div class="space-y-1.5">
+        <label class="block text-xs font-bold text-slate-700">URL Web App Apps Script (<code>/exec</code>)</label>
+        <input id="sheetUrlInput" type="url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:border-emerald-500">
       </div>
+      <div class="grid grid-cols-2 gap-2.5 pt-1">
+        <button onclick="syncPullExcel()" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition active:scale-95">
+          ⬇️ Sinkron
+        </button>
+        <button onclick="syncPushExcel()" class="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition active:scale-95">
+          ⬆️ Kirim Data
+        </button>
+      </div>
+      <p class="text-[11px] text-slate-500 leading-relaxed">
+        <strong>Sinkron:</strong> Mengambil data terbaru dari Google Sheets ke aplikasi.<br>
+        <strong>Kirim Data:</strong> Menyimpan data dari aplikasi ini ke Google Sheets.
+      </p>
     </div>
   </div>
 
@@ -364,6 +374,42 @@
 
     let hasPulledInitial = false;
 
+    function getMacroVal(it, keys) {
+      if (!it) return 0;
+      for (let k of keys) {
+        if (it[k] !== undefined && it[k] !== null && it[k] !== '') {
+          return Number(it[k]) || 0;
+        }
+      }
+      return 0;
+    }
+
+    function normalizeItem(it) {
+      return {
+        time: it.time || 'Makan Siang',
+        name: it.name || '-',
+        kcal: getMacroVal(it, ['kcal', 'kalori', 'cal']),
+        protein: getMacroVal(it, ['protein', 'prot', 'p']),
+        fat: getMacroVal(it, ['fat', 'lemak', 'l']),
+        carbs: getMacroVal(it, ['carbs', 'carb', 'karbohidrat', 'karbo', 'k'])
+      };
+    }
+
+    function cleanDaysState(rawDays) {
+      const cleaned = {};
+      Object.keys(rawDays || {}).forEach(k => {
+        if (k.startsWith('_')) return;
+        const d = rawDays[k] || {};
+        cleaned[k] = {
+          label: d.label || getDayLabel(k),
+          gymDay: Boolean(d.gymDay),
+          gymFocus: d.gymFocus || 'Umum',
+          items: Array.isArray(d.items) ? d.items.map(normalizeItem) : []
+        };
+      });
+      return cleaned;
+    }
+
     function formatIdNum(num, dec = 0) {
       return Number(num || 0).toLocaleString('id-ID', { minimumFractionDigits: dec, maximumFractionDigits: dec });
     }
@@ -386,12 +432,16 @@
         const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('nutrisiApp_v2_state') || localStorage.getItem('nutrisiApp_v1_state');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed && parsed.daysState) appState = { ...appState, ...parsed };
+          if (parsed && parsed.daysState) {
+            appState = { ...appState, ...parsed };
+            appState.daysState = cleanDaysState(appState.daysState);
+          }
         }
       } catch (e) {}
     }
 
     function saveLocalState(shouldPush = true) {
+      appState.daysState = cleanDaysState(appState.daysState);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
       renderAll();
       if (shouldPush) pushToGoogleSheets();
@@ -427,12 +477,12 @@
         const res = await fetch(url);
         const data = await res.json();
         if (data && data.status === 'ok' && data.daysState && Object.keys(data.daysState).length > 0) {
-          appState.daysState = data.daysState;
+          appState.daysState = cleanDaysState(data.daysState);
           if (data.weightData) appState.weightData = data.weightData;
           if (data.targets) appState.targets = data.targets;
-          if (!appState.daysState[appState.activeDate]) {
-            const keys = Object.keys(appState.daysState).sort();
-            appState.activeDate = keys[keys.length - 1];
+          const validKeys = Object.keys(appState.daysState).sort();
+          if (validKeys.length > 0 && !appState.daysState[appState.activeDate]) {
+            appState.activeDate = validKeys[validKeys.length - 1];
           }
           localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
           renderAll();
@@ -441,29 +491,58 @@
         setSyncStatus('synced', 'Tersinkronisasi');
       } catch (err) {
         hasPulledInitial = true;
-        setSyncStatus('error', 'Gagal Tarik');
+        setSyncStatus('error', 'Gagal Sinkron');
       }
     }
 
-    async function pushToGoogleSheets() {
+    async function pushToGoogleSheets(forceManual = false) {
       const url = localStorage.getItem(URL_STORAGE_KEY);
-      if (!url || !hasPulledInitial) return;
-      setSyncStatus('syncing', 'Menyimpan...');
+      if (!url) {
+        if (forceManual) alert('Masukkan URL Web App Apps Script (/exec) terlebih dahulu.');
+        return;
+      }
+      if (!hasPulledInitial && !forceManual) return;
+
+      const cleanedDays = cleanDaysState(appState.daysState);
+      setSyncStatus('syncing', 'Mengirim data...');
       try {
         await fetch(url, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
-            daysState: appState.daysState,
+            daysState: cleanedDays,
             weightData: appState.weightData,
             targets: appState.targets
           })
         });
+        hasPulledInitial = true;
         setSyncStatus('synced', 'Tersinkronisasi');
       } catch (err) {
-        setSyncStatus('error', 'Gagal Sinkron');
+        setSyncStatus('error', 'Gagal Kirim');
       }
+    }
+
+    function syncPullExcel() {
+      const url = document.getElementById('sheetUrlInput').value.trim();
+      if (!url) {
+        alert('Tempel URL Web App Apps Script (/exec) terlebih dahulu.');
+        return;
+      }
+      localStorage.setItem(URL_STORAGE_KEY, url);
+      closeModal('sheetModal');
+      pullFromGoogleSheets();
+    }
+
+    function syncPushExcel() {
+      const url = document.getElementById('sheetUrlInput').value.trim();
+      if (!url) {
+        alert('Tempel URL Web App Apps Script (/exec) terlebih dahulu.');
+        return;
+      }
+      localStorage.setItem(URL_STORAGE_KEY, url);
+      closeModal('sheetModal');
+      pushToGoogleSheets(true);
     }
 
     function renderAll() {
@@ -481,7 +560,7 @@
       document.getElementById('weightProjection').textContent = w.projection || '-';
 
       const dateContainer = document.getElementById('dateTabsContainer');
-      const sortedDates = Object.keys(appState.daysState).sort();
+      const sortedDates = Object.keys(appState.daysState).filter(k => !k.startsWith('_')).sort();
       dateContainer.innerHTML = sortedDates.map(dt => {
         const dObj = appState.daysState[dt];
         const active = dt === appState.activeDate;
@@ -518,10 +597,10 @@
 
       let sumKcal = 0, sumProt = 0, sumFat = 0, sumCarb = 0;
       (currDay.items || []).forEach(it => {
-        sumKcal += Number(it.kcal) || 0;
-        sumProt += Number(it.protein) || 0;
-        sumFat += Number(it.fat) || 0;
-        sumCarb += Number(it.carbs) || 0;
+        sumKcal += getMacroVal(it, ['kcal', 'kalori', 'cal']);
+        sumProt += getMacroVal(it, ['protein', 'prot', 'p']);
+        sumFat += getMacroVal(it, ['fat', 'lemak', 'l']);
+        sumCarb += getMacroVal(it, ['carbs', 'carb', 'karbohidrat', 'karbo', 'k']);
       });
 
       const pct = t.kcal > 0 ? Math.round((sumKcal / t.kcal) * 100) : 0;
@@ -552,29 +631,35 @@
       if (items.length === 0) {
         mealList.innerHTML = `<div class="py-8 text-center text-xs text-slate-400">Belum ada catatan makan hari ini. Ketuk <strong>⚡ Tempel JSON</strong> untuk mulai.</div>`;
       } else {
-        mealList.innerHTML = items.map((it, idx) => `
-          <div class="py-3 flex items-center justify-between gap-3">
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">${it.time}</span>
-                <p class="text-sm font-bold text-slate-900 truncate">${it.name}</p>
+        mealList.innerHTML = items.map((it, idx) => {
+          const kVal = getMacroVal(it, ['kcal', 'kalori', 'cal']);
+          const pVal = getMacroVal(it, ['protein', 'prot', 'p']);
+          const fVal = getMacroVal(it, ['fat', 'lemak', 'l']);
+          const cVal = getMacroVal(it, ['carbs', 'carb', 'karbohidrat', 'karbo', 'k']);
+          return `
+            <div class="py-3 flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">${it.time}</span>
+                  <p class="text-sm font-bold text-slate-900 truncate">${it.name}</p>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">P: <strong>${formatIdNum(pVal, 1)}g</strong> • L: ${formatIdNum(fVal, 1)}g • K: ${formatIdNum(cVal, 1)}g</p>
               </div>
-              <p class="text-xs text-slate-500 mt-0.5">P: <strong>${formatIdNum(it.protein, 1)}g</strong> • L: ${formatIdNum(it.fat, 1)}g • K: ${formatIdNum(it.carbs, 1)}g</p>
+              <div class="flex items-center gap-2.5 flex-shrink-0">
+                <span class="text-xs sm:text-sm font-extrabold text-slate-800">${formatIdNum(kVal)} kkal</span>
+                <button onclick="deleteMealItem(${idx})" class="text-slate-300 hover:text-rose-500 text-xs font-bold px-1.5 py-1">✕</button>
+              </div>
             </div>
-            <div class="flex items-center gap-2.5 flex-shrink-0">
-              <span class="text-xs sm:text-sm font-extrabold text-slate-800">${formatIdNum(it.kcal)} kkal</span>
-              <button onclick="deleteMealItem(${idx})" class="text-slate-300 hover:text-rose-500 text-xs font-bold px-1.5 py-1">✕</button>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       }
 
       let gymTotalCount = 0;
       const trendHtml = sortedDates.slice(-5).map(dt => {
         const d = appState.daysState[dt];
         if (d.gymDay) gymTotalCount++;
-        const k = (d.items || []).reduce((acc, x) => acc + (Number(x.kcal) || 0), 0);
-        const p = (d.items || []).reduce((acc, x) => acc + (Number(x.protein) || 0), 0);
+        const k = (d.items || []).reduce((acc, x) => acc + getMacroVal(x, ['kcal', 'kalori', 'cal']), 0);
+        const p = (d.items || []).reduce((acc, x) => acc + getMacroVal(x, ['protein', 'prot', 'p']), 0);
         const wPct = Math.min(100, Math.round((k / t.kcal) * 100));
         return `
           <div class="space-y-1">
@@ -661,7 +746,7 @@
         if (!appState.daysState[dt]) {
           appState.daysState[dt] = { label: getDayLabel(dt), gymDay: false, gymFocus: 'Umum', items: [] };
         }
-        (parsed.items || []).forEach(it => appState.daysState[dt].items.push(it));
+        (parsed.items || []).forEach(it => appState.daysState[dt].items.push(normalizeItem(it)));
         appState.activeDate = dt;
         document.getElementById('jsonPasteInput').value = '';
         closeModal('pasteModal');
@@ -695,13 +780,6 @@
     function openSheetModal() {
       document.getElementById('sheetUrlInput').value = localStorage.getItem(URL_STORAGE_KEY) || '';
       openModal('sheetModal');
-    }
-
-    function saveSheetUrlAndPull() {
-      const url = document.getElementById('sheetUrlInput').value.trim();
-      if (url) localStorage.setItem(URL_STORAGE_KEY, url);
-      closeModal('sheetModal');
-      pullFromGoogleSheets();
     }
 
     loadLocalState();
