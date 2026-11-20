@@ -1,0 +1,3140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Nutrisi & Progres Defisit</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body {
+      background-color: #F8FAFC;
+      color: #0F172A;
+      -webkit-font-smoothing: antialiased;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+    .bar-transition {
+      transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1), height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .donut-arc {
+      transition: stroke-dasharray 0.55s cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 0.55s cubic-bezier(0.22, 1, 0.36, 1), stroke 0.3s ease;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#F8FAFC] text-slate-800 pb-12">
+
+  <!-- Toast Notification Container (Pengganti alert() agar aman di iframe Google Sites) -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 pointer-events-none flex flex-col gap-2 max-w-sm w-full px-4 sm:px-0"></div>
+
+  <!-- Main Wrapper -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 space-y-5">
+
+    <!-- =====================================================================
+         1. HEADER & BILAH AKSI TERPUSAT (HANYA 4 TOMBOL UTAMA)
+         ===================================================================== -->
+    <header class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:p-6">
+      <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+        
+        <!-- Kiri: Judul Utama, Status Sinkronisasi Cloud & Ringkasan Target -->
+        <div class="space-y-2">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+              Dashboard Nutrisi &amp; Progres Defisit
+            </h1>
+            <!-- Live Sync Status Badge -->
+            <button
+              id="header-sync-badge"
+              type="button"
+              onclick="openSheetsModal()"
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/90 hover:bg-slate-200/70 transition cursor-pointer"
+              title="Klik untuk pengaturan sinkronisasi Google Sheets / Excel"
+            >
+              <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+              <span id="header-sync-text">Belum Terhubung</span>
+            </button>
+          </div>
+
+          <!-- Ringkasan Target Harian -->
+          <div class="flex flex-wrap items-center gap-1.5 text-xs sm:text-[13px] text-slate-500">
+            <span class="font-semibold text-slate-700 mr-1">Target Harian:</span>
+            <span id="header-target-kcal" class="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-800 font-bold tabular-nums">1.863 kkal</span>
+            <span class="text-slate-300">•</span>
+            <span id="header-target-pro" class="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 font-semibold tabular-nums">Protein 83,81 g</span>
+            <span class="text-slate-300">•</span>
+            <span id="header-target-fat" class="px-2.5 py-0.5 rounded-md bg-amber-50 text-amber-700 font-semibold tabular-nums">Lemak 62 g</span>
+            <span class="text-slate-300">•</span>
+            <span id="header-target-carb" class="px-2.5 py-0.5 rounded-md bg-teal-50 text-teal-700 font-semibold tabular-nums">Karbohidrat 242 g</span>
+          </div>
+        </div>
+
+        <!-- Kanan: 4 Tombol Aksi Utama Terpusat -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- Tombol 1: Edit Berat & Target -->
+          <button
+            type="button"
+            onclick="openProfileModal()"
+            class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs sm:text-sm font-bold shadow-sm transition cursor-pointer"
+          >
+            <span>⚖️ Edit Berat &amp; Target</span>
+          </button>
+
+          <!-- Tombol 2: Tempel Data Chat -->
+          <button
+            type="button"
+            onclick="openQuickPasteModal()"
+            class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-800 border border-slate-200/90 text-xs sm:text-sm font-semibold transition cursor-pointer"
+          >
+            <span>⚡ Tempel Data Chat</span>
+          </button>
+
+          <!-- Tombol 3: + Tambah Menu -->
+          <button
+            type="button"
+            onclick="openAddMealModal()"
+            class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs sm:text-sm font-bold shadow-sm transition cursor-pointer"
+          >
+            <span>+ Tambah Menu</span>
+          </button>
+
+          <!-- Tombol 4: Hubungkan Google Sheets / Excel -->
+          <button
+            type="button"
+            onclick="openSheetsModal()"
+            class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow-sm ring-1 ring-emerald-700/20 transition cursor-pointer"
+          >
+            <span>🔗 Hubungkan Google Sheets / Excel</span>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- =====================================================================
+         2. RINGKASAN ATAS HANYA 2 KARTU (PROGRES BERAT BADAN & TOTAL KALORI DONUT)
+         ===================================================================== -->
+    <section aria-label="Ringkasan Utama" class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      
+      <!-- Kartu 1: PROGRES BERAT BADAN (Tanpa Tombol Edit di Kartu) -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 sm:p-6 flex flex-col justify-between">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Progres Berat Badan</p>
+            <div class="mt-2.5 flex flex-wrap items-baseline gap-2.5">
+              <span id="kpi-weight-current" class="text-3xl sm:text-4xl font-extrabold text-slate-900 tabular-nums">89,0 kg</span>
+              <span id="kpi-weight-delta" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 tabular-nums">
+                -2,0 kg (1 bln)
+              </span>
+            </div>
+          </div>
+          <div class="p-3 rounded-2xl bg-emerald-50 text-emerald-600 shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+          <div class="p-3 rounded-xl bg-slate-50/90 border border-slate-200/60">
+            <span class="block text-[11px] font-medium text-slate-400">Berat Awal &amp; Laju Mingguan</span>
+            <span id="kpi-weight-start-rate" class="mt-0.5 block font-bold text-slate-800 tabular-nums">91,0 kg (-0,5 kg/mgg)</span>
+          </div>
+          <div class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/60">
+            <span class="block text-[11px] font-medium text-emerald-700">Proyeksi 1 Bulan ke Depan</span>
+            <span id="kpi-weight-proj" class="mt-0.5 block font-extrabold text-emerald-800 tabular-nums">87,0 – 87,5 kg</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kartu 2: TOTAL KALORI (SVG DONUT CHART INTERAKTIF) -->
+      <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 sm:p-6 flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Kalori</p>
+          <span id="donut-day-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+            Jum 20 Nov
+          </span>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
+          <!-- Sisi Kiri: SVG Donut Chart Interaktif -->
+          <div class="relative w-36 h-36 sm:w-40 sm:h-40 shrink-0 flex items-center justify-center">
+            <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 140 140" aria-label="Grafik Donut Kalori">
+              <!-- Track Lingkaran Dasar -->
+              <circle
+                cx="70"
+                cy="70"
+                r="54"
+                fill="none"
+                stroke="#F1F5F9"
+                stroke-width="14"
+              />
+              <!-- Lengkungan Kedua Putus-Putus untuk Item Rencana (+90 kkal) -->
+              <circle
+                id="donut-planned-arc"
+                cx="70"
+                cy="70"
+                r="54"
+                fill="none"
+                stroke="#F59E0B"
+                stroke-width="14"
+                stroke-dasharray="0 339.292"
+                stroke-dashoffset="0"
+                opacity="0.65"
+                class="donut-arc"
+              >
+                <title id="donut-planned-title">Rencana: +90 kkal</title>
+              </circle>
+              <!-- Lengkungan Utama Kalori Terkonsumsi -->
+              <circle
+                id="donut-main-arc"
+                cx="70"
+                cy="70"
+                r="54"
+                fill="none"
+                stroke="#10B981"
+                stroke-width="14"
+                stroke-linecap="round"
+                stroke-dasharray="64.46 339.292"
+                stroke-dashoffset="0"
+                class="donut-arc"
+              >
+                <title id="donut-main-title">Terkonsumsi: 350 kkal (19%)</title>
+              </circle>
+            </svg>
+
+            <!-- Teks Tengah Donut -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-3">
+              <span id="donut-center-pct" class="text-2xl sm:text-[26px] font-extrabold text-slate-900 leading-none tabular-nums">19%</span>
+              <span id="donut-center-kcal" class="mt-1 text-xs font-bold text-slate-500 tabular-nums">350 kkal</span>
+            </div>
+          </div>
+
+          <!-- Sisi Kanan Donut: Rincian Angka Kalori -->
+          <div class="flex-1 w-full space-y-2 text-xs sm:text-[13px]">
+            <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+              <span class="inline-flex items-center gap-2 text-slate-500 font-medium">
+                <span id="donut-legend-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                Terkonsumsi
+              </span>
+              <span id="donut-stat-consumed" class="font-extrabold text-slate-900 tabular-nums">350 kkal</span>
+            </div>
+
+            <div id="donut-stat-planned-row" class="flex items-center justify-between py-1.5 border-b border-slate-100">
+              <span class="inline-flex items-center gap-2 text-amber-800 font-medium">
+                <span class="w-2.5 h-2.5 rounded-full border-2 border-dashed border-amber-500 bg-amber-100"></span>
+                Proyeksi + Rencana
+              </span>
+              <span id="donut-stat-projected" class="font-bold text-amber-700 tabular-nums">440 kkal</span>
+            </div>
+
+            <div class="flex items-center justify-between py-1.5 border-b border-slate-100">
+              <span class="text-slate-500 font-medium">Target Harian</span>
+              <span id="donut-stat-target" class="font-bold text-slate-700 tabular-nums">1.863 kkal</span>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <span id="donut-stat-rem-label" class="text-slate-600 font-semibold">Sisa Kuota Harian</span>
+              <span id="donut-stat-rem-val" class="font-extrabold text-emerald-700 tabular-nums">1.513 kkal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- =====================================================================
+         3. BAR NAVIGASI HARI & KONTROL GYM DAY (TEPAT DI BAWAH RINGKASAN ATAS)
+         ===================================================================== -->
+    <section aria-label="Navigasi Hari dan Penanda Gym Day" class="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:px-6 sm:py-4">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5">
+        
+        <!-- Kiri: Tab Pemilih Hari + Tombol + Hari Baru -->
+        <div class="flex flex-wrap items-center gap-2">
+          <div id="day-tabs-container" class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Pilih Tanggal"></div>
+
+          <!-- Kontrol + Hari Baru -->
+          <div class="inline-flex items-center">
+            <button
+              id="btn-add-day-toggle"
+              type="button"
+              onclick="toggleNewDayInput()"
+              class="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 transition cursor-pointer"
+              title="Tambah tanggal pencatatan baru"
+            >
+              <span>+ Hari Baru</span>
+            </button>
+            <div id="new-day-inline-form" class="hidden items-center gap-1.5 ml-1">
+              <input
+                id="new-day-date-input"
+                type="date"
+                class="px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onclick="confirmCreateNewDay()"
+                class="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition cursor-pointer"
+              >
+                Buat
+              </button>
+              <button
+                type="button"
+                onclick="toggleNewDayInput(false)"
+                class="px-2 py-1.5 rounded-xl text-xs font-medium text-slate-500 hover:bg-slate-100 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kanan: Kontrol Interaktif Gym Day (1 Klik Toggle + Fokus Latihan) -->
+        <div class="flex flex-wrap items-center gap-2.5 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+          <button
+            id="btn-gym-day-toggle"
+            type="button"
+            onclick="toggleActiveGymDay()"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/90 transition cursor-pointer"
+          >
+            <span>🏋️ Tandai Gym Day</span>
+          </button>
+
+          <!-- Pemilih Cepat Fokus Latihan (Muncul saat Gym Day Aktif) -->
+          <div id="gym-focus-selector" class="hidden flex-wrap items-center gap-1 bg-indigo-50/80 border border-indigo-200/80 rounded-xl p-1">
+            <span class="text-[11px] font-bold text-indigo-700 px-2">Fokus:</span>
+            <div id="gym-focus-pills" class="flex flex-wrap items-center gap-1"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         4. RINCIAN MAKRONUTRIEN (TANPA TOMBOL EDIT DI KARTU)
+         ===================================================================== -->
+    <section aria-label="Rincian Makronutrien" class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 sm:p-6">
+      <div class="flex flex-wrap items-center justify-between gap-2.5 mb-5">
+        <div>
+          <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Rincian Makronutrien</h2>
+          <p id="macro-full-date" class="text-xs sm:text-sm text-slate-500 mt-0.5">Jumat, 20 Nov 2026 (Hari Ini)</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Badge Gym Day (Muncul jika hari aktif ditandai Gym Day) -->
+          <span
+            id="macro-gym-badge"
+            class="hidden items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/90"
+          >
+            🏋️ Gym Day (Push)
+          </span>
+          <!-- Badge Status Kalori -->
+          <span
+            id="day-status-pill"
+            class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/70"
+          >
+            Berjalan (Pagi)
+          </span>
+        </div>
+      </div>
+
+      <!-- 4 Progress Bar Detail -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+        <!-- Bar 1: Energi (Kalori) -->
+        <div>
+          <div class="flex justify-between items-baseline text-xs sm:text-sm mb-1.5">
+            <span class="font-bold text-slate-700">Energi (Kalori)</span>
+            <div class="text-right tabular-nums">
+              <span id="bar-cal-text" class="font-extrabold text-slate-900">350 / 1.863 kkal</span>
+              <span id="bar-cal-pct" class="ml-1.5 text-xs font-bold text-emerald-600">(19%)</span>
+            </div>
+          </div>
+          <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div id="bar-cal-fill" class="h-full bg-emerald-500 rounded-full bar-transition" style="width: 19%"></div>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-400 mt-1.5 tabular-nums">
+            <span>Rentang ideal defisit: 80–110%</span>
+            <span id="bar-cal-note" class="font-semibold text-emerald-600">Sisa kuota 1.513 kkal</span>
+          </div>
+        </div>
+
+        <!-- Bar 2: Protein (Target Minimal) -->
+        <div>
+          <div class="flex justify-between items-baseline text-xs sm:text-sm mb-1.5">
+            <span id="bar-pro-label" class="font-bold text-slate-700">Protein (Target Minimal 83,81g)</span>
+            <div class="text-right tabular-nums">
+              <span id="bar-pro-text" class="font-extrabold text-slate-900">14,0 / 83,81 g</span>
+              <span id="bar-pro-pct" class="ml-1.5 text-xs font-bold text-blue-600">(17%)</span>
+            </div>
+          </div>
+          <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div id="bar-pro-fill" class="h-full bg-blue-500 rounded-full bar-transition" style="width: 17%"></div>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-400 mt-1.5 tabular-nums">
+            <span>Prioritas sintesis otot &amp; rasa kenyang</span>
+            <span id="bar-pro-note" class="font-semibold text-blue-600">Sisa target 69,8 g</span>
+          </div>
+        </div>
+
+        <!-- Bar 3: Lemak (Batas Maksimal) -->
+        <div>
+          <div class="flex justify-between items-baseline text-xs sm:text-sm mb-1.5">
+            <span id="bar-fat-label" class="font-bold text-slate-700">Lemak (Batas Maksimal 62g)</span>
+            <div class="text-right tabular-nums">
+              <span id="bar-fat-text" class="font-extrabold text-slate-900">6,5 / 62,0 g</span>
+              <span id="bar-fat-pct" class="ml-1.5 text-xs font-bold text-amber-600">(10%)</span>
+            </div>
+          </div>
+          <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div id="bar-fat-fill" class="h-full bg-amber-500 rounded-full bar-transition" style="width: 10%"></div>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-400 mt-1.5 tabular-nums">
+            <span id="bar-fat-limit-sub">Batas harian ≤ 62,0 g</span>
+            <span id="bar-fat-note" class="font-semibold text-slate-600">Sisa batas 55,5 g</span>
+          </div>
+        </div>
+
+        <!-- Bar 4: Karbohidrat (Batas Maksimal) -->
+        <div>
+          <div class="flex justify-between items-baseline text-xs sm:text-sm mb-1.5">
+            <span id="bar-carb-label" class="font-bold text-slate-700">Karbohidrat (Batas Maksimal 242g)</span>
+            <div class="text-right tabular-nums">
+              <span id="bar-carb-text" class="font-extrabold text-slate-900">59,0 / 242,0 g</span>
+              <span id="bar-carb-pct" class="ml-1.5 text-xs font-bold text-teal-600">(24%)</span>
+            </div>
+          </div>
+          <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+            <div id="bar-carb-fill" class="h-full bg-teal-500 rounded-full bar-transition" style="width: 24%"></div>
+          </div>
+          <div class="flex justify-between text-[11px] text-slate-400 mt-1.5 tabular-nums">
+            <span id="bar-carb-limit-sub">Batas harian ≤ 242,0 g</span>
+            <span id="bar-carb-note" class="font-semibold text-slate-600">Sisa batas 183,0 g</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kotak Insight Dinamis (Evaluasi Makro + Catatan Pemulihan Otot Gym Day) -->
+      <div id="eval-box" class="mt-5 p-3.5 sm:p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/70 flex items-start gap-3">
+        <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+        </svg>
+        <div class="space-y-1 text-xs sm:text-[13px] leading-relaxed text-slate-700">
+          <p id="eval-note-text">
+            Lemak pagi sangat rendah (6,5g). Sisa kuota masih sangat lega untuk makan siang tinggi protein (target 35–40g protein).
+          </p>
+          <p id="eval-gym-recovery-note" class="hidden font-semibold text-indigo-800">
+            🏋️ Catatan Gym Day: Pastikan asupan protein minimal tercapai penuh (≥ 83,81g, idealnya 100–125g) untuk mendukung pemulihan jaringan otot pasca-latihan.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         5. TREN KALORI & PROTEIN + DAFTAR CATATAN ASUPAN HARIAN (GRID 2 KOLOM)
+         ===================================================================== -->
+    <section aria-label="Tren Harian dan Catatan Asupan" class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      
+      <!-- Kartu Kiri (5 Kolom): Tren Kalori & Protein -->
+      <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 sm:p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+            <div>
+              <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Tren Kalori &amp; Protein</h2>
+              <p class="text-xs text-slate-500 mt-0.5">Klik batang hari untuk berpindah hari</p>
+            </div>
+            <!-- Penghitung Ringkas Sesi Gym -->
+            <span
+              id="trend-gym-counter"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80 tabular-nums"
+            >
+              🏋️ 1 Hari Gym tercatat
+            </span>
+          </div>
+
+          <!-- Legenda Grafik -->
+          <div class="flex flex-wrap items-center gap-3 text-[11px] font-medium text-slate-600 mb-2">
+            <span class="inline-flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span> Defisit / Berjalan
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-sm bg-rose-500"></span> Surplus
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-sm bg-blue-500"></span> Protein (g)
+            </span>
+          </div>
+
+          <div id="trend-chart-container" class="mt-2 pt-1"></div>
+        </div>
+
+        <div class="mt-4 pt-3.5 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+          <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200/60 flex items-center justify-between">
+            <span class="text-slate-500">Rata-rata Kalori:</span>
+            <span id="trend-avg-cal" class="font-bold text-slate-800 tabular-nums">1.928 kkal</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-blue-50/60 border border-blue-200/60 flex items-center justify-between">
+            <span class="text-blue-800">Rata-rata Protein:</span>
+            <span id="trend-avg-pro" class="font-bold text-blue-700 tabular-nums">99,8 g/hari</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kartu Kanan (7 Kolom): Catatan Asupan Harian -->
+      <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div class="p-5 sm:px-6 sm:py-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Catatan Asupan</h2>
+              <span id="log-day-pill" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+                Jum 20 Nov
+              </span>
+            </div>
+            <p id="log-summary-subtitle" class="text-xs text-slate-500 mt-0.5">
+              2 item tercatat • 1 item rencana menunggu konfirmasi
+            </p>
+          </div>
+          <span id="log-total-badge" class="px-3 py-1 rounded-xl text-xs sm:text-sm font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/70 tabular-nums">
+            350 kkal
+          </span>
+        </div>
+
+        <!-- Banner Rencana Snack (Muncul jika ada item rencana seperti L-Men Protein Bar) -->
+        <div id="planned-callout" class="hidden bg-amber-50/95 border-b border-amber-200/80 px-5 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+          <div class="flex items-center gap-2.5 text-xs text-amber-900">
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-200 text-amber-900 font-bold text-[11px] shrink-0">!</span>
+            <span id="planned-callout-text">
+              Rencana belum masuk total aktual: <strong>L-Men Protein Bar Choco Latte 22g (90 kkal | 7,0g Protein)</strong>.
+            </span>
+          </div>
+          <button
+            type="button"
+            onclick="toggleFirstPlannedItem()"
+            class="self-start sm:self-auto px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition cursor-pointer shrink-0"
+          >
+            ✓ Tandai Sudah Dimakan
+          </button>
+        </div>
+
+        <!-- Daftar Makanan Per Kategori -->
+        <div id="meal-log-list" class="divide-y divide-slate-100"></div>
+
+        <!-- Footer Total Harian -->
+        <div id="meal-log-footer" class="bg-slate-50/90 border-t border-slate-200/80 px-5 sm:px-6 py-4"></div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- =========================================================================
+       MODAL 1: EDIT BERAT BADAN & TARGET HARIAN
+       ========================================================================= -->
+  <div id="modal-profile-targets" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-3 sm:p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+      
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50">
+        <div class="flex items-center gap-2.5">
+          <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-slate-900 text-white font-bold text-base shadow-xs">⚖️</span>
+          <div>
+            <h3 class="text-base sm:text-lg font-extrabold text-slate-900">Edit Berat Badan &amp; Target Harian</h3>
+            <p class="text-xs text-slate-500">Perbarui berat terkini, riwayat timbang, dan target kalori/makro harian</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeProfileModal()" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <form id="profile-targets-form" onsubmit="saveProfileAndTargets(event)" class="p-5 overflow-y-auto space-y-6 text-xs sm:text-sm">
+        
+        <!-- Bagian 1: Progres Berat Badan -->
+        <div class="space-y-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-700">
+              1. Progres &amp; Riwayat Berat Badan
+            </h4>
+            <div class="flex items-center gap-1.5">
+              <label for="input-weigh-date" class="text-[11px] font-medium text-slate-500">Tanggal Timbang:</label>
+              <input
+                id="input-weigh-date"
+                type="date"
+                class="px-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label for="input-current-weight" class="block text-xs font-bold text-slate-800 mb-1">
+                Berat Terkini (kg)
+              </label>
+              <input
+                id="input-current-weight"
+                type="number"
+                step="0.1"
+                min="30"
+                max="300"
+                required
+                oninput="updateWeightPreviewInModal()"
+                class="w-full px-3.5 py-2 text-sm font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 tabular-nums"
+              />
+            </div>
+            <div>
+              <label for="input-start-weight" class="block text-xs font-semibold text-slate-700 mb-1">
+                Berat Awal (kg)
+              </label>
+              <input
+                id="input-start-weight"
+                type="number"
+                step="0.1"
+                min="30"
+                max="300"
+                required
+                oninput="updateWeightPreviewInModal()"
+                class="w-full px-3.5 py-2 text-sm font-semibold text-slate-800 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 tabular-nums"
+              />
+            </div>
+            <div>
+              <label for="input-projected-range" class="block text-xs font-semibold text-slate-700 mb-1">
+                Proyeksi 1 Bulan Depan
+              </label>
+              <input
+                id="input-projected-range"
+                type="text"
+                placeholder="87,0 – 87,5 kg"
+                class="w-full px-3.5 py-2 text-sm font-semibold text-emerald-700 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 tabular-nums"
+              />
+            </div>
+          </div>
+
+          <!-- Ringkasan Kalkulasi Otomatis -->
+          <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 grid grid-cols-2 gap-2.5 text-xs">
+            <div>
+              <span class="block text-[11px] text-slate-500">Perubahan dari Berat Awal</span>
+              <span id="modal-weight-diff-preview" class="font-extrabold text-emerald-700 tabular-nums">-2,0 kg</span>
+            </div>
+            <div>
+              <span class="block text-[11px] text-slate-500">Estimasi Proyeksi Otomatis</span>
+              <span id="modal-weight-proj-preview" class="font-extrabold text-emerald-800 tabular-nums">87,0 – 87,5 kg</span>
+            </div>
+          </div>
+
+          <!-- Riwayat Timbang -->
+          <div class="space-y-1.5">
+            <span class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Riwayat Timbang</span>
+            <div id="weight-history-list" class="max-h-28 overflow-y-auto divide-y divide-slate-100 rounded-xl border border-slate-200/80 bg-slate-50/60"></div>
+          </div>
+        </div>
+
+        <hr class="border-slate-200/80" />
+
+        <!-- Bagian 2: Target Kalori & Makronutrien Harian -->
+        <div class="space-y-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h4 class="text-xs font-extrabold uppercase tracking-wider text-blue-700">
+                2. Target Kalori &amp; Makronutrien Harian
+              </h4>
+              <p class="text-[11px] text-slate-500 mt-0.5">Hitung otomatis proporsional dari berat baru atau edit manual</p>
+            </div>
+            <button
+              type="button"
+              onclick="autoCalculateFromWeight()"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/90 transition cursor-pointer"
+            >
+              <span>✨ Hitung Otomatis dari Berat Baru</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label for="input-target-kcal" class="block text-xs font-bold text-slate-800 mb-1">
+                Kalori (kkal)
+              </label>
+              <input
+                id="input-target-kcal"
+                type="number"
+                step="1"
+                min="1000"
+                max="5000"
+                required
+                class="w-full px-3 py-2 text-sm font-extrabold text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
+              />
+            </div>
+            <div>
+              <label for="input-target-pro" class="block text-xs font-bold text-blue-700 mb-1">
+                Protein Min (g)
+              </label>
+              <input
+                id="input-target-pro"
+                type="number"
+                step="0.01"
+                min="30"
+                max="400"
+                required
+                class="w-full px-3 py-2 text-sm font-bold text-blue-700 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
+              />
+            </div>
+            <div>
+              <label for="input-target-fat" class="block text-xs font-bold text-amber-700 mb-1">
+                Lemak Maks (g)
+              </label>
+              <input
+                id="input-target-fat"
+                type="number"
+                step="0.1"
+                min="20"
+                max="200"
+                required
+                class="w-full px-3 py-2 text-sm font-bold text-amber-700 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 tabular-nums"
+              />
+            </div>
+            <div>
+              <label for="input-target-carb" class="block text-xs font-bold text-teal-700 mb-1">
+                Karbo Maks (g)
+              </label>
+              <input
+                id="input-target-carb"
+                type="number"
+                step="0.1"
+                min="30"
+                max="600"
+                required
+                class="w-full px-3 py-2 text-sm font-bold text-teal-700 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 tabular-nums"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <button
+            type="button"
+            onclick="closeProfileModal()"
+            class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            class="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs transition cursor-pointer"
+          >
+            Simpan Perubahan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 2: TEMPEL DATA CHAT (MENU MAKANAN & STATUS GYM DAY)
+       ========================================================================= -->
+  <div id="modal-quick-paste" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-amber-100 text-amber-800 text-sm font-bold">⚡</span>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Tempel Data Chat</h3>
+            <p class="text-xs text-slate-500">Tempel JSON makanan dan/atau status Gym Day dari chat</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeQuickPasteModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <div>
+          <label for="quick-paste-input" class="block text-xs font-semibold text-slate-700 mb-1.5">
+            Kode JSON (Otomatis masuk ke <span id="quick-paste-target-date" class="text-emerald-700 font-bold">Jum 20 Nov</span> jika tanggal tidak ditulis):
+          </label>
+          <textarea
+            id="quick-paste-input"
+            rows="4"
+            placeholder='{"date":"2026-11-20","time":"Makan Siang","name":"Nasi & Dada Ayam Bakar","kcal":530,"p":48,"l":10.5,"k":52,"gymDay":true,"gymFocus":"Pull"}'
+            class="w-full px-3.5 py-2.5 text-xs font-mono bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-800"
+          ></textarea>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/70 text-[11px] text-slate-600 space-y-1">
+          <p class="font-semibold text-slate-700">Format yang Didukung:</p>
+          <p>• Tambah menu: <code class="px-1 py-0.5 bg-white border border-slate-200 rounded">{"time":"Makan Siang","name":"...","kcal":530,"p":48,"l":10,"k":52}</code></p>
+          <p>• Tandai Gym Day saja atau sekalian menu: tambahkan <code class="px-1 py-0.5 bg-white border border-slate-200 rounded">"gymDay":true,"gymFocus":"Push"</code>.</p>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-1">
+          <button
+            type="button"
+            onclick="closeQuickPasteModal()"
+            class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onclick="applyQuickPaste()"
+            class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs transition cursor-pointer"
+          >
+            Terapkan &amp; Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 3: + TAMBAH MENU MANUAL
+       ========================================================================= -->
+  <div id="modal-add-meal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-blue-50/50">
+        <div class="flex items-center gap-2.5">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-600 text-white text-sm font-bold">+</span>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Tambah Menu Makanan</h3>
+            <p class="text-xs text-slate-500">Catat menu baru pada tanggal aktif dan hitung ulang makronutrien</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAddMealModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <form id="add-meal-form" onsubmit="handleAddMealSubmit(event)" class="p-5 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="modal-meal-date" class="block text-xs font-semibold text-slate-700 mb-1">Tanggal</label>
+            <input
+              id="modal-meal-date"
+              type="date"
+              required
+              class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label for="modal-meal-time" class="block text-xs font-semibold text-slate-700 mb-1">Kategori / Waktu</label>
+            <select
+              id="modal-meal-time"
+              class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="Sarapan">Sarapan</option>
+              <option value="Snack Pagi">Snack Pagi</option>
+              <option value="Makan Siang" selected>Makan Siang</option>
+              <option value="Snack Sore">Snack Sore</option>
+              <option value="After Gym">After Gym</option>
+              <option value="Makan Malam">Makan Malam</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="modal-meal-name" class="block text-xs font-semibold text-slate-700 mb-1">Nama Menu &amp; Porsi</label>
+          <input
+            id="modal-meal-name"
+            type="text"
+            required
+            placeholder="Contoh: Nasi Putih 150g + Dada Ayam Bakar Tanpa Kulit"
+            class="w-full px-3.5 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div>
+            <label for="modal-meal-kcal" class="block text-xs font-semibold text-slate-700 mb-1">Kalori (kkal)</label>
+            <input
+              id="modal-meal-kcal"
+              type="number"
+              min="0"
+              step="1"
+              required
+              placeholder="530"
+              class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
+            />
+          </div>
+          <div>
+            <label for="modal-meal-pro" class="block text-xs font-semibold text-blue-700 mb-1">Protein (g)</label>
+            <input
+              id="modal-meal-pro"
+              type="number"
+              min="0"
+              step="0.1"
+              required
+              placeholder="45.0"
+              class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums"
+            />
+          </div>
+          <div>
+            <label for="modal-meal-fat" class="block text-xs font-semibold text-amber-700 mb-1">Lemak (g)</label>
+            <input
+              id="modal-meal-fat"
+              type="number"
+              min="0"
+              step="0.1"
+              required
+              placeholder="11.0"
+              class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 tabular-nums"
+            />
+          </div>
+          <div>
+            <label for="modal-meal-carb" class="block text-xs font-semibold text-teal-700 mb-1">Karbo (g)</label>
+            <input
+              id="modal-meal-carb"
+              type="number"
+              min="0"
+              step="0.1"
+              required
+              placeholder="52.0"
+              class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 tabular-nums"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="modal-meal-status" class="block text-xs font-semibold text-slate-700 mb-1">Status Konsumsi</label>
+          <select
+            id="modal-meal-status"
+            class="w-full px-3 py-2 text-xs sm:text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="eaten" selected>Sudah Dimakan (Hitung ke Total Aktual)</option>
+            <option value="planned">Rencana (Belum Dimakan)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            onclick="closeAddMealModal()"
+            class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            class="px-5 py-2 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition cursor-pointer"
+          >
+            Simpan Menu
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       MODAL 4: HUBUNGKAN GOOGLE SHEETS / EXCEL + SALIN EMBED URL TERPASANG
+       ========================================================================= -->
+  <div id="modal-sheets-sync" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-3 sm:p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+      
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-emerald-50/50">
+        <div class="flex items-center gap-2.5">
+          <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-600 text-white font-bold text-base shadow-xs">🔗</span>
+          <div>
+            <h3 class="text-base sm:text-lg font-extrabold text-slate-900">Hubungkan Google Sheets / Excel</h3>
+            <p class="text-xs text-slate-600">Sinkronisasi real-time anti-timpa data untuk Google Sites &amp; ekspor Excel (.xlsx)</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeSheetsModal()" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-5 text-xs sm:text-sm">
+        
+        <!-- Status Koneksi Aktif -->
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block">Status Koneksi Cloud</span>
+            <span id="modal-sync-status-label" class="font-bold text-slate-800">Belum Terhubung</span>
+          </div>
+          <span id="modal-last-sync" class="text-xs font-medium text-slate-500 tabular-nums"></span>
+        </div>
+
+        <!-- Panduan 3 Langkah -->
+        <div class="space-y-2.5">
+          <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-700">
+            Panduan Koneksi 3 Langkah
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+            <div class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/70 space-y-1">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white font-bold text-[11px]">1</span>
+              <p class="font-bold text-slate-900">Pasang Apps Script</p>
+              <p class="text-slate-600 leading-relaxed">
+                Buka Google Sheets → <strong>Ekstensi → Apps Script</strong> → tempel kode di bawah.
+              </p>
+            </div>
+            <div class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/70 space-y-1">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white font-bold text-[11px]">2</span>
+              <p class="font-bold text-slate-900">Deploy Aplikasi Web</p>
+              <p class="text-slate-600 leading-relaxed">
+                Klik <strong>Terapkan → Deployment baru → Aplikasi Web</strong> dengan akses <strong>Siapa saja (Anyone)</strong>.
+              </p>
+            </div>
+            <div class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/70 space-y-1">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-600 text-white font-bold text-[11px]">3</span>
+              <p class="font-bold text-slate-900">Embed Permanen</p>
+              <p class="text-slate-600 leading-relaxed">
+                Salin kode HTML siap embed di bawah agar URL Anda tertanam otomatis di Google Sites.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input URL Web App -->
+        <div class="p-4 rounded-xl bg-blue-50/50 border border-blue-200/80 space-y-3">
+          <label for="sheets-url-input" class="block text-xs font-bold text-slate-800">
+            URL Web App Google Apps Script (<code class="text-[11px]">.../exec</code>):
+          </label>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input
+              id="sheets-url-input"
+              type="url"
+              placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+              class="flex-1 px-3.5 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+            <button
+              type="button"
+              onclick="saveAndSyncSheetsUrl()"
+              class="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs transition cursor-pointer shrink-0"
+            >
+              Simpan &amp; Tarik Data
+            </button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              type="button"
+              onclick="pullFromGoogleSheets(true)"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200 transition cursor-pointer"
+            >
+              ⬇️ Tarik Data dari Sheets
+            </button>
+            <button
+              type="button"
+              onclick="pushToGoogleSheets(true)"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
+            >
+              ⬆️ Kirim Data ke Sheets
+            </button>
+            <button
+              type="button"
+              onclick="disconnectSheetsUrl()"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 transition cursor-pointer ml-auto"
+            >
+              Putuskan
+            </button>
+          </div>
+
+          <!-- Tombol Salin Kode HTML Siap Embed Dengan URL Terpasang -->
+          <div class="pt-2 border-t border-blue-200/70">
+            <button
+              type="button"
+              onclick="copyEmbedHtmlWithUrl()"
+              class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xs transition cursor-pointer"
+            >
+              <span>📋 Salin Kode HTML Siap Embed (Dengan URL Terpasang)</span>
+            </button>
+            <p class="text-[11px] text-slate-500 mt-1.5">
+              Menyuntikkan URL Web App Anda langsung ke <code class="px-1 bg-white rounded border border-slate-200">DEFAULT_APPS_SCRIPT_URL</code> agar saat di-embed di Google Sites langsung terhubung otomatis.
+            </p>
+          </div>
+        </div>
+
+        <!-- Kode Google Apps Script -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-700">Kode Google Apps Script (Mendukung Gym Day &amp; Log_Nutrisi):</span>
+            <button
+              type="button"
+              onclick="copyAppsScriptCode()"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white transition cursor-pointer"
+            >
+              <span>📋 Salin Kode Apps Script</span>
+            </button>
+          </div>
+          <textarea
+            id="apps-script-template"
+            readonly
+            rows="8"
+            class="w-full p-3 text-[11px] font-mono bg-slate-900 text-emerald-300 rounded-xl border border-slate-700 focus:outline-none leading-relaxed"
+          >const LOG_SHEET_NAME = 'Log_Nutrisi';
+const STATE_SHEET_NAME = '_State';
+
+function getOrCreateSheets() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let logSheet = ss.getSheetByName(LOG_SHEET_NAME);
+  if (!logSheet) {
+    logSheet = ss.insertSheet(LOG_SHEET_NAME);
+  }
+  let stateSheet = ss.getSheetByName(STATE_SHEET_NAME);
+  if (!stateSheet) {
+    stateSheet = ss.insertSheet(STATE_SHEET_NAME);
+    stateSheet.hideSheet();
+  }
+  return { logSheet, stateSheet };
+}
+
+function doGet() {
+  const { logSheet, stateSheet } = getOrCreateSheets();
+  const rawState = stateSheet.getRange('A1').getValue();
+  const lastRow = logSheet.getLastRow();
+  const rows = lastRow > 1
+    ? logSheet.getRange(2, 1, lastRow - 1, logSheet.getLastColumn()).getValues()
+    : [];
+
+  if (rawState) {
+    const parsed = JSON.parse(rawState);
+    parsed.rows = rows;
+    return ContentService.createTextOutput(JSON.stringify(parsed))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  return ContentService.createTextOutput(JSON.stringify({
+    status: rows.length > 0 ? 'rows_only' : 'empty',
+    rows: rows
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  const payload = JSON.parse(e.postData.contents);
+  const { logSheet, stateSheet } = getOrCreateSheets();
+
+  if (payload.daysState) {
+    stateSheet.getRange('A1').setValue(JSON.stringify({
+      status: 'ok',
+      updatedAt: new Date().toISOString(),
+      daysState: payload.daysState
+    }));
+  }
+
+  logSheet.clearContents();
+  const headers = [
+    'Tanggal',
+    'Waktu/Kategori',
+    'Nama Menu',
+    'Kalori (kkal)',
+    'Protein (g)',
+    'Lemak (g)',
+    'Karbohidrat (g)',
+    'Status',
+    'Gym Day'
+  ];
+  logSheet.appendRow(headers);
+  logSheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#ECFDF5');
+
+  if (Array.isArray(payload.rows) && payload.rows.length > 0) {
+    const normalizedRows = payload.rows.map(r => {
+      const copy = r.slice(0, headers.length);
+      while (copy.length < headers.length) copy.push('');
+      return copy;
+    });
+    logSheet.getRange(2, 1, normalizedRows.length, headers.length).setValues(normalizedRows);
+    logSheet.autoResizeColumns(1, headers.length);
+  }
+
+  return ContentService.createTextOutput(JSON.stringify({
+    status: 'ok',
+    rowCount: (payload.rows || []).length
+  })).setMimeType(ContentService.MimeType.JSON);
+}</textarea>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // URL Web App Google Apps Script (otomatis terisi saat menggunakan tombol Salin Kode HTML Siap Embed)
+    const DEFAULT_APPS_SCRIPT_URL = '';
+
+    // Snapshot HTML awal sebelum render dinamis agar salinan kode embed tetap bersih
+    let CLEAN_HTML_SNAPSHOT = '';
+
+    const GYM_FOCUS_OPTIONS = ['Umum', 'Push', 'Pull', 'Legs', 'Cardio'];
+    const TODAY_DATE_ID = '2026-11-20';
+    const STORAGE_KEY_DATA = 'nutrisi_defisit_dashboard_v4';
+    const STORAGE_KEY_PROFILE = 'nutrisi_defisit_profile_v4';
+    const STORAGE_KEY_URL = 'nutrisi_defisit_apps_script_url_v4';
+
+    /**
+     * DEFAULT PROFIL BERAT BADAN & TARGET HARIAN
+     */
+    const DEFAULT_PROFILE_STATE = {
+      currentWeight: 89.0,
+      startWeight: 91.0,
+      projectedRange: '87,0 – 87,5 kg',
+      weightHistory: [
+        { id: 'wh-1', date: '2026-10-20', weight: 91.0, note: 'Berat Awal' },
+        { id: 'wh-2', date: '2026-11-20', weight: 89.0, note: 'Terkini' },
+      ],
+      targets: {
+        calories: 1863,
+        protein: 83.81,
+        fat: 62,
+        carbs: 242,
+      },
+    };
+
+    /**
+     * DATA AWAL LENGKAP (18 - 20 NOV 2026) TERMASUK GYM DAY
+     */
+    const INITIAL_DAYS_DATA = {
+      '2026-11-18': {
+        id: '2026-11-18',
+        shortLabel: 'Rab 18 Nov',
+        fullDateLabel: 'Rabu, 18 Nov 2026',
+        isToday: false,
+        gymDay: true,
+        gymFocus: 'Push',
+        items: [
+          {
+            id: '18-1',
+            time: 'Sarapan',
+            name: 'Mini Pandan Cake',
+            kcal: 110,
+            p: 1.5,
+            l: 3.5,
+            k: 18.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '18-2',
+            time: 'Makan Siang',
+            name: 'Nasi Putih, Ikan Goreng, Tumis Sayur & Sambal Goreng Kentang Kikil',
+            kcal: 480,
+            p: 24.5,
+            l: 14.0,
+            k: 64.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '18-3',
+            time: 'Snack Sore',
+            name: 'Anggur Shine Muscat 15 butir',
+            kcal: 120,
+            p: 1.2,
+            l: 0.3,
+            k: 30.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '18-4',
+            time: 'After Gym',
+            name: 'Paha Ayam Panggang Teriyaki, 2 Yakitori & Crabstick Tempura',
+            kcal: 470,
+            p: 43.0,
+            l: 16.7,
+            k: 36.5,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '18-5',
+            time: 'Makan Malam',
+            name: 'Siomay Batagor Kol Tahu Bumbu Kacang',
+            kcal: 460,
+            p: 21.0,
+            l: 18.0,
+            k: 52.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '18-6',
+            time: 'Makan Malam',
+            name: 'Bakso Telur Komplet + Mie Kuning',
+            kcal: 565,
+            p: 32.5,
+            l: 20.0,
+            k: 63.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+        ],
+      },
+      '2026-11-19': {
+        id: '2026-11-19',
+        shortLabel: 'Kam 19 Nov',
+        fullDateLabel: 'Kamis, 19 Nov 2026',
+        isToday: false,
+        gymDay: false,
+        gymFocus: '',
+        items: [
+          {
+            id: '19-1',
+            time: 'Sarapan',
+            name: 'Buah Naga Merah 4 iris & Susu UHT Low Fat 220ml',
+            kcal: 185,
+            p: 9.0,
+            l: 3.3,
+            k: 30.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '19-2',
+            time: 'Snack Pagi',
+            name: 'Dimsum Mentai 1 buah',
+            kcal: 85,
+            p: 4.5,
+            l: 5.0,
+            k: 5.5,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '19-3',
+            time: 'Makan Siang',
+            name: 'Paket Ayam Goreng, Tahu-Tempe, Sayur Asem & Es Teh Tawar',
+            kcal: 700,
+            p: 42.1,
+            l: 28.9,
+            k: 67.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '19-4',
+            time: 'Makan Malam',
+            name: 'Fettuccine Saus Tomat Daging Olahan, Wortel & Kacang Polong',
+            kcal: 405,
+            p: 17.0,
+            l: 10.5,
+            k: 59.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '19-5',
+            time: 'Snack Sore',
+            name: 'Mangga Segar 1 utuh & Buah Pir 1 utuh',
+            kcal: 230,
+            p: 2.3,
+            l: 0.8,
+            k: 57.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '19-6',
+            time: 'Snack Sore',
+            name: 'Kue Kacang Mini Bentuk Hati 1 buah',
+            kcal: 45,
+            p: 0.9,
+            l: 2.4,
+            k: 5.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+        ],
+      },
+      '2026-11-20': {
+        id: '2026-11-20',
+        shortLabel: 'Jum 20 Nov',
+        fullDateLabel: 'Jumat, 20 Nov 2026 (Hari Ini)',
+        isToday: true,
+        gymDay: false,
+        gymFocus: '',
+        items: [
+          {
+            id: '20-1',
+            time: 'Sarapan',
+            name: 'Onigiri Hot Tuna',
+            kcal: 200,
+            p: 6.0,
+            l: 3.5,
+            k: 36.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '20-2',
+            time: 'Sarapan',
+            name: 'Ultra Milk Low Fat Chocolate 250ml',
+            kcal: 150,
+            p: 8.0,
+            l: 3.0,
+            k: 23.0,
+            status: 'eaten',
+            isPlanned: false,
+          },
+          {
+            id: '20-3',
+            time: 'Snack Pagi',
+            name: 'L-Men Protein Bar Choco Latte 22g',
+            kcal: 90,
+            p: 7.0,
+            l: 2.0,
+            k: 12.0,
+            status: 'planned',
+            isPlanned: true,
+          },
+        ],
+      },
+    };
+
+    /**
+     * SAFE STORAGE WRAPPER (AMAN DI SANDBOXED IFRAME GOOGLE SITES)
+     */
+    const memoryStorageFallback = {};
+
+    function safeGetStorage(key) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch (e) {
+        return Object.prototype.hasOwnProperty.call(memoryStorageFallback, key)
+          ? memoryStorageFallback[key]
+          : null;
+      }
+    }
+
+    function safeSetStorage(key, value) {
+      memoryStorageFallback[key] = value;
+      try {
+        window.localStorage.setItem(key, value);
+      } catch (e) {
+        // Fallback otomatis ke memori
+      }
+    }
+
+    function safeRemoveStorage(key) {
+      delete memoryStorageFallback[key];
+      try {
+        window.localStorage.removeItem(key);
+      } catch (e) {
+        // Abaikan jika tidak tersedia
+      }
+    }
+
+    /**
+     * STATE APLIKASI & PERLINDUNGAN ANTI-TIMPA CLOUD
+     */
+    let profileState = loadProfileState();
+    let daysState = loadDaysState();
+    let activeDayId = TODAY_DATE_ID;
+    let appsScriptUrl = loadAppsScriptUrl();
+    let cloudSyncState = appsScriptUrl ? 'idle' : 'disconnected'; // disconnected | pulling | pushing | synced | error
+    let hasLoadedFromCloud = !appsScriptUrl; // Wajib true sebelum POST otomatis diizinkan
+    let lastSyncTimestamp = null;
+
+    function getTargets() {
+      const t = profileState.targets || DEFAULT_PROFILE_STATE.targets;
+      return {
+        calories: Number(t.calories ?? t.kcal) || 1863,
+        protein: Number(t.protein) || 83.81,
+        fat: Number(t.fat) || 62,
+        carbs: Number(t.carbs) || 242,
+      };
+    }
+
+    function loadAppsScriptUrl() {
+      const savedUrl = safeGetStorage(STORAGE_KEY_URL);
+      if (savedUrl && savedUrl.trim()) return savedUrl.trim();
+      return (DEFAULT_APPS_SCRIPT_URL || '').trim();
+    }
+
+    function normalizeProfileState(raw) {
+      const base = JSON.parse(JSON.stringify(DEFAULT_PROFILE_STATE));
+      if (!raw || typeof raw !== 'object') return base;
+      if (typeof raw.currentWeight === 'number' && !isNaN(raw.currentWeight)) base.currentWeight = raw.currentWeight;
+      if (typeof raw.startWeight === 'number' && !isNaN(raw.startWeight)) base.startWeight = raw.startWeight;
+      if (typeof raw.projectedRange === 'string' && raw.projectedRange.trim()) base.projectedRange = raw.projectedRange.trim();
+      if (Array.isArray(raw.weightHistory)) base.weightHistory = raw.weightHistory;
+      if (raw.targets && typeof raw.targets === 'object') {
+        base.targets = {
+          calories: Number(raw.targets.calories ?? raw.targets.kcal) || base.targets.calories,
+          protein: Number(raw.targets.protein) || base.targets.protein,
+          fat: Number(raw.targets.fat) || base.targets.fat,
+          carbs: Number(raw.targets.carbs) || base.targets.carbs,
+        };
+      }
+      return base;
+    }
+
+    function normalizeDayObject(dayObj, dateId) {
+      const meta = buildDateLabels(dateId);
+      const isGym = Boolean(dayObj.gymDay ?? dayObj.isGymDay);
+      return {
+        id: dateId,
+        shortLabel: dayObj.shortLabel || meta.shortLabel,
+        fullDateLabel: dayObj.fullDateLabel || meta.fullDateLabel,
+        isToday: dateId === TODAY_DATE_ID,
+        gymDay: isGym,
+        gymFocus: isGym ? (dayObj.gymFocus || 'Umum') : '',
+        items: Array.isArray(dayObj.items)
+          ? dayObj.items.map((item, i) => {
+              const planned = item.status === 'planned' || Boolean(item.isPlanned && item.status !== 'eaten');
+              return {
+                id: item.id ? String(item.id) : `${dateId}-${i + 1}`,
+                time: String(item.time || 'Makan'),
+                name: String(item.name || 'Menu'),
+                kcal: Number(item.kcal) || 0,
+                p: Number(item.p) || 0,
+                l: Number(item.l) || 0,
+                k: Number(item.k) || 0,
+                status: planned ? 'planned' : 'eaten',
+                isPlanned: Boolean(item.isPlanned || planned),
+              };
+            })
+          : [],
+      };
+    }
+
+    function loadProfileState() {
+      try {
+        const savedProfile = safeGetStorage(STORAGE_KEY_PROFILE);
+        if (savedProfile) {
+          return normalizeProfileState(JSON.parse(savedProfile));
+        }
+        const savedData = safeGetStorage(STORAGE_KEY_DATA);
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          if (parsedData && parsedData._profile) {
+            return normalizeProfileState(parsedData._profile);
+          }
+        }
+      } catch (e) {
+        // Gunakan default
+      }
+      return JSON.parse(JSON.stringify(DEFAULT_PROFILE_STATE));
+    }
+
+    function loadDaysState() {
+      try {
+        const saved = safeGetStorage(STORAGE_KEY_DATA);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            if (parsed._profile) {
+              profileState = normalizeProfileState(parsed._profile);
+              delete parsed._profile;
+            }
+            const dateKeys = Object.keys(parsed).filter((k) => !k.startsWith('_'));
+            if (dateKeys.length > 0) {
+              const normalized = {};
+              dateKeys.forEach((k) => {
+                normalized[k] = normalizeDayObject(parsed[k], k);
+              });
+              return normalized;
+            }
+          }
+        }
+      } catch (e) {
+        // Gunakan default
+      }
+      return JSON.parse(JSON.stringify(INITIAL_DAYS_DATA));
+    }
+
+    function saveState() {
+      try {
+        safeSetStorage(STORAGE_KEY_PROFILE, JSON.stringify(profileState));
+        const payloadToStore = Object.assign({}, daysState, { _profile: profileState });
+        safeSetStorage(STORAGE_KEY_DATA, JSON.stringify(payloadToStore));
+      } catch (e) {
+        // Abaikan jika gagal
+      }
+    }
+
+    /**
+     * HELPER TANGGAL & LABEL INDONESIA
+     */
+    function buildDateLabels(dateStr) {
+      const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const shortDays = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+      const fullDays = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+      const parts = dateStr.split('-').map(Number);
+      if (parts.length === 3 && !parts.some(isNaN)) {
+        const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+        const sDay = shortDays[dt.getDay()];
+        const fDay = fullDays[dt.getDay()];
+        const sMonth = shortMonths[dt.getMonth()];
+        const todaySuffix = dateStr === TODAY_DATE_ID ? ' (Hari Ini)' : '';
+        return {
+          shortLabel: `${sDay} ${parts[2]} ${sMonth}`,
+          fullDateLabel: `${fDay}, ${parts[2]} ${sMonth} ${parts[0]}${todaySuffix}`,
+        };
+      }
+      return {
+        shortLabel: dateStr,
+        fullDateLabel: dateStr,
+      };
+    }
+
+    function ensureDayExists(dateStr) {
+      if (daysState[dateStr]) return daysState[dateStr];
+      const labels = buildDateLabels(dateStr);
+      daysState[dateStr] = {
+        id: dateStr,
+        shortLabel: labels.shortLabel,
+        fullDateLabel: labels.fullDateLabel,
+        isToday: dateStr === TODAY_DATE_ID,
+        gymDay: false,
+        gymFocus: '',
+        items: [],
+      };
+      return daysState[dateStr];
+    }
+
+    // Urutan kronologis (Rab 18 Nov, Kam 19 Nov, Jum 20 Nov, dst.)
+    function getChronologicalDayIds() {
+      return Object.keys(daysState)
+        .filter((k) => !k.startsWith('_'))
+        .sort((a, b) => a.localeCompare(b));
+    }
+
+    /**
+     * FORMATTER ANGKA
+     */
+    function formatInt(num) {
+      return Math.round(num).toLocaleString('id-ID');
+    }
+
+    function formatDec(num, decimals = 1) {
+      return Number(num).toLocaleString('id-ID', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      });
+    }
+
+    /**
+     * PEMULIHAN GANDA & SINKRONISASI GOOGLE SHEETS ANTI-TIMPA
+     */
+    function reconstructDaysFromRows(rows) {
+      if (!Array.isArray(rows) || rows.length === 0) return null;
+      const rebuilt = {};
+      rows.forEach((row, idx) => {
+        if (!Array.isArray(row) || row.length < 4) return;
+        let dateStr = String(row[0] || '').trim();
+        if (row[0] instanceof Date) {
+          dateStr = row[0].toISOString().slice(0, 10);
+        } else if (dateStr.includes('T')) {
+          dateStr = dateStr.slice(0, 10);
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+
+        if (!rebuilt[dateStr]) {
+          const labels = buildDateLabels(dateStr);
+          rebuilt[dateStr] = {
+            id: dateStr,
+            shortLabel: labels.shortLabel,
+            fullDateLabel: labels.fullDateLabel,
+            isToday: dateStr === TODAY_DATE_ID,
+            gymDay: false,
+            gymFocus: '',
+            items: [],
+          };
+        }
+
+        const gymCol = String(row[8] || '').trim();
+        if (gymCol && gymCol.toLowerCase().startsWith('gym')) {
+          rebuilt[dateStr].gymDay = true;
+          const match = gymCol.match(/\(([^)]+)\)/);
+          rebuilt[dateStr].gymFocus = match ? match[1] : (rebuilt[dateStr].gymFocus || 'Umum');
+        }
+
+        const statusRaw = String(row[7] || '').toLowerCase();
+        const isPlanned = statusRaw.includes('rencana') || statusRaw === 'planned';
+        rebuilt[dateStr].items.push({
+          id: `sheet-${dateStr}-${idx + 1}`,
+          time: String(row[1] || 'Makan'),
+          name: String(row[2] || 'Menu'),
+          kcal: Number(row[3]) || 0,
+          p: Number(row[4]) || 0,
+          l: Number(row[5]) || 0,
+          k: Number(row[6]) || 0,
+          status: isPlanned ? 'planned' : 'eaten',
+          isPlanned,
+        });
+      });
+
+      return Object.keys(rebuilt).length > 0 ? rebuilt : null;
+    }
+
+    function buildExcelRowsPayload() {
+      const rows = [];
+      const sortedDates = getChronologicalDayIds();
+      sortedDates.forEach((dateId) => {
+        const dayObj = daysState[dateId];
+        if (!dayObj || !Array.isArray(dayObj.items)) return;
+        const gymLabel = dayObj.gymDay ? `Gym Day (${dayObj.gymFocus || 'Umum'})` : 'Rest Day';
+        dayObj.items.forEach((item) => {
+          rows.push([
+            dateId,
+            item.time,
+            item.name,
+            Math.round(Number(item.kcal) || 0),
+            Number((Number(item.p) || 0).toFixed(1)),
+            Number((Number(item.l) || 0).toFixed(1)),
+            Number((Number(item.k) || 0).toFixed(1)),
+            item.status === 'planned' ? 'Rencana' : 'Sudah Dimakan',
+            gymLabel,
+          ]);
+        });
+      });
+      return rows;
+    }
+
+    async function pullFromGoogleSheets(showFeedback = false) {
+      if (!appsScriptUrl) {
+        if (showFeedback) showToast('Masukkan URL Web App Google Apps Script terlebih dahulu.', 'amber');
+        return;
+      }
+
+      cloudSyncState = 'pulling';
+      updateSyncStatusUI();
+
+      try {
+        const res = await fetch(appsScriptUrl, {
+          method: 'GET',
+          redirect: 'follow',
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        // Pemulihan utama dari tab _State
+        if (data && data.status === 'ok' && data.daysState && typeof data.daysState === 'object') {
+          const incoming = Object.assign({}, data.daysState);
+          if (incoming._profile) {
+            profileState = normalizeProfileState(incoming._profile);
+            delete incoming._profile;
+          }
+          const validDates = Object.keys(incoming).filter((k) => !k.startsWith('_'));
+          if (validDates.length > 0) {
+            const normalizedMap = {};
+            validDates.forEach((k) => {
+              normalizedMap[k] = normalizeDayObject(incoming[k], k);
+            });
+            daysState = normalizedMap;
+          } else if (Array.isArray(data.rows)) {
+            const recovered = reconstructDaysFromRows(data.rows);
+            if (recovered) daysState = recovered;
+          }
+
+          if (!daysState[activeDayId]) {
+            const ids = getChronologicalDayIds();
+            activeDayId = ids[ids.length - 1] || TODAY_DATE_ID;
+          }
+
+          hasLoadedFromCloud = true;
+          lastSyncTimestamp = new Date();
+          cloudSyncState = 'synced';
+          saveState();
+          renderDashboard();
+          if (showFeedback) showToast('Data & status Gym Day berhasil ditarik dari Google Sheets.', 'emerald');
+        } else if (data && Array.isArray(data.rows) && data.rows.length > 0) {
+          // Pemulihan cadangan dari baris Log_Nutrisi jika _State belum ada
+          const recovered = reconstructDaysFromRows(data.rows);
+          if (recovered) {
+            daysState = recovered;
+            if (!daysState[activeDayId]) {
+              const ids = getChronologicalDayIds();
+              activeDayId = ids[ids.length - 1] || TODAY_DATE_ID;
+            }
+          }
+          hasLoadedFromCloud = true;
+          lastSyncTimestamp = new Date();
+          cloudSyncState = 'synced';
+          saveState();
+          renderDashboard();
+          if (showFeedback) showToast('Data dipulihkan dari tab Log_Nutrisi Google Sheets.', 'emerald');
+        } else if (data && data.status === 'empty') {
+          // Sheet baru memang kosong -> aman untuk inisialisasi awal ke cloud
+          hasLoadedFromCloud = true;
+          await pushToGoogleSheets(false, true);
+          if (showFeedback) showToast('Terhubung! Data awal otomatis disimpan ke Google Sheets.', 'emerald');
+        } else {
+          hasLoadedFromCloud = true;
+          cloudSyncState = 'synced';
+          lastSyncTimestamp = new Date();
+        }
+      } catch (err) {
+        // Jangan set hasLoadedFromCloud = true saat error agar tidak menimpa data cloud yang ada
+        cloudSyncState = 'error';
+        if (showFeedback) {
+          showToast('Gagal menarik data dari Sheets. Periksa URL Web App & izin akses "Anyone".', 'amber');
+        }
+      } finally {
+        updateSyncStatusUI();
+      }
+    }
+
+    async function pushToGoogleSheets(showFeedback = false, forceOverride = false) {
+      if (!appsScriptUrl) {
+        if (showFeedback) showToast('Masukkan URL Web App Google Apps Script terlebih dahulu.', 'amber');
+        return;
+      }
+
+      // Perlindungan anti-timpa: jangan kirim POST sebelum GET awal selesai
+      if (!hasLoadedFromCloud && !forceOverride) {
+        if (showFeedback) {
+          showToast('Menunggu sinkronisasi awal dari Sheets selesai agar data lama tidak tertimpa.', 'amber');
+        }
+        return;
+      }
+
+      cloudSyncState = 'pushing';
+      updateSyncStatusUI();
+
+      try {
+        const rows = buildExcelRowsPayload();
+        const syncedDaysState = Object.assign({}, daysState, { _profile: profileState });
+        const res = await fetch(appsScriptUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          redirect: 'follow',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8',
+          },
+          body: JSON.stringify({
+            daysState: syncedDaysState,
+            rows,
+          }),
+        });
+        if (res.type !== 'opaque' && !res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        hasLoadedFromCloud = true;
+        lastSyncTimestamp = new Date();
+        cloudSyncState = 'synced';
+        if (showFeedback) {
+          showToast(`Tersinkronisasi ke Google Sheets (${rows.length} baris).`, 'emerald');
+        }
+      } catch (err) {
+        cloudSyncState = 'error';
+        if (showFeedback) {
+          showToast('Gagal menyimpan ke Google Sheets. Data tetap aman di browser.', 'amber');
+        }
+      } finally {
+        updateSyncStatusUI();
+      }
+    }
+
+    function updateSyncStatusUI() {
+      const badge = document.getElementById('header-sync-badge');
+      const dot = document.getElementById('header-sync-dot');
+      const text = document.getElementById('header-sync-text');
+      const modalLabel = document.getElementById('modal-sync-status-label');
+      const modalLastSync = document.getElementById('modal-last-sync');
+
+      if (!appsScriptUrl || cloudSyncState === 'disconnected') {
+        badge.className =
+          'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200/90 hover:bg-slate-200/70 transition cursor-pointer';
+        dot.className = 'w-2 h-2 rounded-full bg-slate-400';
+        text.textContent = 'Belum Terhubung';
+        if (modalLabel) {
+          modalLabel.textContent = 'Belum Terhubung (Mode Lokal Browser)';
+          modalLabel.className = 'font-bold text-slate-800';
+        }
+        if (modalLastSync) modalLastSync.textContent = '';
+        return;
+      }
+
+      if (cloudSyncState === 'pulling') {
+        badge.className =
+          'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 transition cursor-pointer';
+        dot.className = 'w-2 h-2 rounded-full bg-blue-500 animate-ping';
+        text.textContent = 'Menarik Data...';
+        if (modalLabel) {
+          modalLabel.textContent = 'Menarik Data dari Google Sheets...';
+          modalLabel.className = 'font-bold text-blue-700';
+        }
+        return;
+      }
+
+      if (cloudSyncState === 'pushing') {
+        badge.className =
+          'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 transition cursor-pointer';
+        dot.className = 'w-2 h-2 rounded-full bg-indigo-500 animate-ping';
+        text.textContent = 'Menyimpan...';
+        if (modalLabel) {
+          modalLabel.textContent = 'Menyimpan Perubahan ke Google Sheets...';
+          modalLabel.className = 'font-bold text-indigo-700';
+        }
+        return;
+      }
+
+      if (cloudSyncState === 'error') {
+        badge.className =
+          'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 transition cursor-pointer';
+        dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+        text.textContent = 'Gagal Sinkron (Lokal Aman)';
+        if (modalLabel) {
+          modalLabel.textContent = 'Koneksi Terkendala — Klik "Tarik Data dari Sheets" untuk coba lagi';
+          modalLabel.className = 'font-bold text-amber-700';
+        }
+        return;
+      }
+
+      badge.className =
+        'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/90 hover:bg-emerald-100 transition cursor-pointer';
+      dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+      text.textContent = 'Tersinkronisasi';
+      if (modalLabel) {
+        modalLabel.textContent = 'Tersinkronisasi dengan Google Sheets';
+        modalLabel.className = 'font-bold text-emerald-700';
+      }
+      if (modalLastSync && lastSyncTimestamp) {
+        const hh = String(lastSyncTimestamp.getHours()).padStart(2, '0');
+        const mm = String(lastSyncTimestamp.getMinutes()).padStart(2, '0');
+        modalLastSync.textContent = `Sync terakhir: ${hh}:${mm}`;
+      }
+    }
+
+    /**
+     * KALKULASI TOTAL NUTRISI HARIAN
+     */
+    function calculateDayTotals(dayObj) {
+      const eatenItems = dayObj.items.filter((item) => item.status === 'eaten');
+      const plannedItems = dayObj.items.filter((item) => item.status === 'planned');
+
+      const totals = eatenItems.reduce(
+        (acc, item) => {
+          acc.kcal += Number(item.kcal) || 0;
+          acc.p += Number(item.p) || 0;
+          acc.l += Number(item.l) || 0;
+          acc.k += Number(item.k) || 0;
+          return acc;
+        },
+        { kcal: 0, p: 0, l: 0, k: 0 }
+      );
+
+      const plannedTotals = plannedItems.reduce(
+        (acc, item) => {
+          acc.kcal += Number(item.kcal) || 0;
+          acc.p += Number(item.p) || 0;
+          acc.l += Number(item.l) || 0;
+          acc.k += Number(item.k) || 0;
+          return acc;
+        },
+        { kcal: 0, p: 0, l: 0, k: 0 }
+      );
+
+      return { totals, plannedTotals, hasPlanned: plannedItems.length > 0 };
+    }
+
+    /**
+     * STATUS & INSIGHT DINAMIS PER HARI (TERMASUK CATATAN GYM DAY)
+     */
+    function getDayMeta(dayObj, totals) {
+      const targets = getTargets();
+      const diffCal = Math.round(totals.kcal - targets.calories);
+      const pctCal = Math.round((totals.kcal / targets.calories) * 100);
+      const pctPro = Math.round((totals.p / targets.protein) * 100);
+      const isGym = Boolean(dayObj.gymDay);
+      const focusLabel = dayObj.gymFocus || 'Umum';
+
+      // Insight pemulihan protein khusus Gym Day
+      let gymRecoveryNote = '';
+      if (isGym) {
+        if (totals.p >= targets.protein) {
+          gymRecoveryNote = `🏋️ Catatan Gym Day (${focusLabel}): Asupan protein sudah optimal (${formatDec(totals.p)}g / ${pctPro}% target minimal) untuk pemulihan serat otot dan menjaga massa bebas lemak.`;
+        } else {
+          const sisaPro = Math.max(0, targets.protein - totals.p);
+          gymRecoveryNote = `🏋️ Catatan Gym Day (${focusLabel}): Prioritaskan pemenuhan sisa ${formatDec(sisaPro)}g protein (target minimal ${formatDec(targets.protein, 2)}g) pasca-latihan agar sintesis protein otot tetap maksimal selama defisit.`;
+        }
+      }
+
+      // Evaluasi spesifik hari berjalan
+      if (dayObj.id === '2026-11-20' && Math.round(targets.calories) === 1863 && dayObj.items.length === 3) {
+        const lmenItem = dayObj.items.find((i) => i.id === '20-3');
+        if (lmenItem && lmenItem.status === 'planned') {
+          return {
+            badgeText: 'Berjalan (Pagi)',
+            badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
+            evalClass: 'bg-emerald-50/70 border-emerald-200/70',
+            evalText:
+              'Lemak pagi sangat rendah (6,5g). Sisa kuota masih sangat lega untuk makan siang tinggi protein (target 35–40g protein).',
+            gymRecoveryNote,
+          };
+        } else if (lmenItem && lmenItem.status === 'eaten') {
+          return {
+            badgeText: 'Berjalan (Pagi + Snack)',
+            badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
+            evalClass: 'bg-emerald-50/70 border-emerald-200/70',
+            evalText:
+              'L-Men Protein Bar Choco Latte sudah tercatat (21,0g protein, lemak 8,5g). Sisa kuota 1.423 kkal sangat leluasa untuk makan siang & malam.',
+            gymRecoveryNote,
+          };
+        }
+      }
+
+      if (dayObj.id === '2026-11-19' && Math.round(totals.kcal) === 1650 && Math.round(targets.calories) === 1863) {
+        return {
+          badgeText: 'Defisit Terjaga (-213 kkal)',
+          badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
+          evalClass: 'bg-emerald-50/70 border-emerald-200/70',
+          evalText:
+            'Defisit Terjaga: selisih bersih -213 kkal dari target 1.863 kkal dengan lemak (50,9g) dan karbohidrat (223,5g) terkontrol aman di bawah batas maksimal.',
+          gymRecoveryNote,
+        };
+      }
+
+      if (dayObj.id === '2026-11-18' && Math.round(totals.kcal) === 2205 && Math.round(targets.calories) === 1863) {
+        return {
+          badgeText: 'Surplus (+342 kkal)',
+          badgeClass: 'bg-rose-50 text-rose-700 border-rose-200/70',
+          evalClass: 'bg-rose-50/60 border-rose-200/70',
+          evalText:
+            'Surplus ringan +342 kkal akibat dua makan malam tambahan, namun distribusi protein sangat tinggi (123,7g / 148% target).',
+          gymRecoveryNote,
+        };
+      }
+
+      if (pctCal > 110) {
+        return {
+          badgeText: `Surplus (+${formatInt(diffCal)} kkal)`,
+          badgeClass: 'bg-rose-50 text-rose-700 border-rose-200/70',
+          evalClass: 'bg-rose-50/60 border-rose-200/70',
+          evalText: `Total energi ${formatInt(totals.kcal)} kkal (${pctCal}% target, +${formatInt(diffCal)} kkal) dengan capaian protein ${formatDec(totals.p)}g (${pctPro}% target).`,
+          gymRecoveryNote,
+        };
+      } else if (pctCal >= 80) {
+        return {
+          badgeText: diffCal <= 0 ? `Defisit Terjaga (-${formatInt(Math.abs(diffCal))} kkal)` : `Toleransi (+${formatInt(diffCal)} kkal)`,
+          badgeClass: diffCal <= 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200/70' : 'bg-amber-50 text-amber-800 border-amber-200/80',
+          evalClass: diffCal <= 0 ? 'bg-emerald-50/70 border-emerald-200/70' : 'bg-amber-50/70 border-amber-200/70',
+          evalText: `Asupan energi berada di ${pctCal}% target (${formatInt(totals.kcal)} kkal) dengan capaian protein ${formatDec(totals.p)}g (${pctPro}% target).`,
+          gymRecoveryNote,
+        };
+      } else {
+        return {
+          badgeText: dayObj.isToday ? `Berjalan (${pctCal}%)` : `Selesai (${pctCal}%)`,
+          badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/70',
+          evalClass: 'bg-emerald-50/70 border-emerald-200/70',
+          evalText: `Tercatat ${formatInt(totals.kcal)} kkal (${pctCal}%). Sisa kuota hari ini ${formatInt(Math.abs(diffCal))} kkal dan ${formatDec(Math.max(0, targets.protein - totals.p))}g protein.`,
+          gymRecoveryNote,
+        };
+      }
+    }
+
+    /**
+     * RENDER SELURUH DASHBOARD
+     */
+    function renderDashboard() {
+      const targets = getTargets();
+      const sortedIds = getChronologicalDayIds();
+      if (!daysState[activeDayId]) {
+        activeDayId = sortedIds[sortedIds.length - 1] || TODAY_DATE_ID;
+      }
+      const currentDay = daysState[activeDayId];
+      const { totals, plannedTotals, hasPlanned } = calculateDayTotals(currentDay);
+      const meta = getDayMeta(currentDay, totals);
+
+      // 1. Header Target Pills
+      document.getElementById('header-target-kcal').textContent = `${formatInt(targets.calories)} kkal`;
+      document.getElementById('header-target-pro').textContent = `Protein ${formatDec(targets.protein, 2)} g`;
+      document.getElementById('header-target-fat').textContent = `Lemak ${formatInt(targets.fat)} g`;
+      document.getElementById('header-target-carb').textContent = `Karbohidrat ${formatInt(targets.carbs)} g`;
+
+      // 2A. Kartu 1: Progres Berat Badan
+      const cw = Number(profileState.currentWeight) || 89.0;
+      const sw = Number(profileState.startWeight) || 91.0;
+      const diffW = cw - sw;
+      const weeklyRate = diffW / 4; // Laju mingguan rata-rata sebulan terakhir
+      const projRangeText =
+        profileState.projectedRange ||
+        `${formatDec(Math.max(40, cw - 2.0), 1)} – ${formatDec(Math.max(40, cw - 1.5), 1)} kg`;
+
+      document.getElementById('kpi-weight-current').textContent = `${formatDec(cw, 1)} kg`;
+      const deltaBadge = document.getElementById('kpi-weight-delta');
+      if (diffW <= 0) {
+        deltaBadge.textContent = `${formatDec(diffW, 1)} kg (1 bln)`;
+        deltaBadge.className =
+          'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 tabular-nums';
+      } else {
+        deltaBadge.textContent = `+${formatDec(diffW, 1)} kg (1 bln)`;
+        deltaBadge.className =
+          'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80 tabular-nums';
+      }
+      document.getElementById('kpi-weight-start-rate').textContent = `${formatDec(sw, 1)} kg (${weeklyRate <= 0 ? '' : '+'}${formatDec(weeklyRate, 1)} kg/mgg)`;
+      document.getElementById('kpi-weight-proj').textContent = projRangeText;
+
+      // 2B. Kartu 2: Total Kalori (SVG Donut Chart Interaktif)
+      renderDonutCard(currentDay, totals, plannedTotals, hasPlanned, targets);
+
+      // 3. Bar Navigasi Hari & Kontrol Gym Day
+      renderDayTabs();
+      renderGymDayControls(currentDay);
+
+      // 4. Rincian Makronutrien
+      document.getElementById('macro-full-date').textContent = currentDay.fullDateLabel;
+      const macroGymBadge = document.getElementById('macro-gym-badge');
+      if (currentDay.gymDay) {
+        macroGymBadge.textContent = `🏋️ Gym Day (${currentDay.gymFocus || 'Umum'})`;
+        macroGymBadge.classList.remove('hidden');
+        macroGymBadge.classList.add('inline-flex');
+      } else {
+        macroGymBadge.classList.add('hidden');
+        macroGymBadge.classList.remove('inline-flex');
+      }
+
+      const statusPill = document.getElementById('day-status-pill');
+      statusPill.textContent = meta.badgeText;
+      statusPill.className = `inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${meta.badgeClass}`;
+
+      const calPct = Math.round((totals.kcal / targets.calories) * 100);
+      const calDiff = Math.round(targets.calories - totals.kcal);
+      document.getElementById('bar-cal-text').textContent = `${formatInt(totals.kcal)} / ${formatInt(targets.calories)} kkal`;
+      document.getElementById('bar-cal-pct').textContent = `(${calPct}%)`;
+      document.getElementById('bar-cal-pct').className = `ml-1.5 text-xs font-bold ${
+        calPct > 110 ? 'text-rose-600' : calPct > 100 ? 'text-amber-600' : 'text-emerald-600'
+      }`;
+      const calFill = document.getElementById('bar-cal-fill');
+      calFill.style.width = `${Math.min(100, calPct)}%`;
+      calFill.className = `h-full rounded-full bar-transition ${
+        calPct > 110 ? 'bg-rose-500' : calPct > 100 ? 'bg-amber-500' : 'bg-emerald-500'
+      }`;
+      const calNoteEl = document.getElementById('bar-cal-note');
+      if (calDiff < 0) {
+        calNoteEl.textContent = `Surplus +${formatInt(Math.abs(calDiff))} kkal`;
+        calNoteEl.className = 'font-semibold text-rose-600';
+      } else {
+        calNoteEl.textContent = `Sisa kuota ${formatInt(calDiff)} kkal`;
+        calNoteEl.className = 'font-semibold text-emerald-600';
+      }
+
+      const proPct = Math.round((totals.p / targets.protein) * 100);
+      const proRem = targets.protein - totals.p;
+      document.getElementById('bar-pro-label').textContent = `Protein (Target Minimal ${formatDec(targets.protein, 2)}g)`;
+      document.getElementById('bar-pro-text').textContent = `${formatDec(totals.p)} / ${formatDec(targets.protein, 2)} g`;
+      document.getElementById('bar-pro-pct').textContent = `(${proPct}%)`;
+      const proFill = document.getElementById('bar-pro-fill');
+      proFill.style.width = `${Math.min(100, proPct)}%`;
+      proFill.className = `h-full rounded-full bar-transition ${proPct >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`;
+      const proNoteEl = document.getElementById('bar-pro-note');
+      if (proRem <= 0) {
+        proNoteEl.textContent = `Optimal (+${formatDec(Math.abs(proRem))} g)`;
+        proNoteEl.className = 'font-semibold text-emerald-600';
+      } else {
+        proNoteEl.textContent = `Sisa target ${formatDec(proRem)} g`;
+        proNoteEl.className = 'font-semibold text-blue-600';
+      }
+
+      const fatPct = Math.round((totals.l / targets.fat) * 100);
+      const fatRem = targets.fat - totals.l;
+      document.getElementById('bar-fat-label').textContent = `Lemak (Batas Maksimal ${formatInt(targets.fat)}g)`;
+      document.getElementById('bar-fat-text').textContent = `${formatDec(totals.l)} / ${formatDec(targets.fat, 1)} g`;
+      document.getElementById('bar-fat-pct').textContent = `(${fatPct}%)`;
+      document.getElementById('bar-fat-pct').className = `ml-1.5 text-xs font-bold ${fatRem < 0 ? 'text-rose-600' : 'text-amber-600'}`;
+      const fatFill = document.getElementById('bar-fat-fill');
+      fatFill.style.width = `${Math.min(100, fatPct)}%`;
+      fatFill.className = `h-full rounded-full bar-transition ${fatRem < 0 ? 'bg-rose-500' : 'bg-amber-500'}`;
+      document.getElementById('bar-fat-limit-sub').textContent = `Batas harian ≤ ${formatInt(targets.fat)} g`;
+      const fatNoteEl = document.getElementById('bar-fat-note');
+      if (fatRem < 0) {
+        fatNoteEl.textContent = `Melewati batas +${formatDec(Math.abs(fatRem))} g`;
+        fatNoteEl.className = 'font-semibold text-rose-600';
+      } else {
+        fatNoteEl.textContent = `Sisa batas ${formatDec(fatRem)} g`;
+        fatNoteEl.className = 'font-semibold text-slate-600';
+      }
+
+      const carbPct = Math.round((totals.k / targets.carbs) * 100);
+      const carbRem = targets.carbs - totals.k;
+      document.getElementById('bar-carb-label').textContent = `Karbohidrat (Batas Maksimal ${formatInt(targets.carbs)}g)`;
+      document.getElementById('bar-carb-text').textContent = `${formatDec(totals.k)} / ${formatDec(targets.carbs, 1)} g`;
+      document.getElementById('bar-carb-pct').textContent = `(${carbPct}%)`;
+      document.getElementById('bar-carb-pct').className = `ml-1.5 text-xs font-bold ${carbRem < 0 ? 'text-rose-600' : 'text-teal-600'}`;
+      const carbFill = document.getElementById('bar-carb-fill');
+      carbFill.style.width = `${Math.min(100, carbPct)}%`;
+      carbFill.className = `h-full rounded-full bar-transition ${carbRem < 0 ? 'bg-rose-500' : 'bg-teal-500'}`;
+      document.getElementById('bar-carb-limit-sub').textContent = `Batas harian ≤ ${formatInt(targets.carbs)} g`;
+      const carbNoteEl = document.getElementById('bar-carb-note');
+      if (carbRem < 0) {
+        carbNoteEl.textContent = `Melewati batas +${formatDec(Math.abs(carbRem))} g`;
+        carbNoteEl.className = 'font-semibold text-rose-600';
+      } else {
+        carbNoteEl.textContent = `Sisa batas ${formatDec(carbRem)} g`;
+        carbNoteEl.className = 'font-semibold text-slate-600';
+      }
+
+      // Kotak Insight Dinamis
+      const evalBox = document.getElementById('eval-box');
+      evalBox.className = `mt-5 p-3.5 sm:p-4 rounded-xl border flex items-start gap-3 ${meta.evalClass}`;
+      document.getElementById('eval-note-text').textContent = meta.evalText;
+      const gymRecoveryEl = document.getElementById('eval-gym-recovery-note');
+      if (meta.gymRecoveryNote) {
+        gymRecoveryEl.textContent = meta.gymRecoveryNote;
+        gymRecoveryEl.classList.remove('hidden');
+      } else {
+        gymRecoveryEl.classList.add('hidden');
+      }
+
+      // 5. Tren Kalori & Protein + Catatan Asupan
+      renderTrendChart();
+      renderMealLogCard(currentDay, totals, plannedTotals, hasPlanned);
+      updateSyncStatusUI();
+    }
+
+    /**
+     * RENDER SVG DONUT CHART KARTU TOTAL KALORI
+     */
+    function renderDonutCard(dayObj, totals, plannedTotals, hasPlanned, targets) {
+      const CIRCUMFERENCE = 2 * Math.PI * 54; // ~339.292
+      const rawPct = (totals.kcal / targets.calories) * 100;
+      const displayPct = Math.round(rawPct);
+      const clampedMainRatio = Math.min(1, Math.max(0, totals.kcal / targets.calories));
+      const mainDashLen = clampedMainRatio * CIRCUMFERENCE;
+
+      // Warna lengkungan utama: emerald (<=100%), amber (100-110%), rose (>110%)
+      let strokeHex = '#10B981';
+      let dotClass = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+      if (rawPct > 110) {
+        strokeHex = '#F43F5E';
+        dotClass = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+      } else if (rawPct > 100) {
+        strokeHex = '#F59E0B';
+        dotClass = 'w-2.5 h-2.5 rounded-full bg-amber-500';
+      }
+
+      const mainArc = document.getElementById('donut-main-arc');
+      mainArc.setAttribute('stroke', strokeHex);
+      mainArc.setAttribute('stroke-dasharray', `${mainDashLen.toFixed(2)} ${CIRCUMFERENCE.toFixed(2)}`);
+      mainArc.setAttribute('stroke-dashoffset', '0');
+      document.getElementById('donut-main-title').textContent = `Terkonsumsi: ${formatInt(totals.kcal)} kkal (${displayPct}%)`;
+
+      // Lengkungan kedua putus-putus untuk item rencana (+90 kkal)
+      const plannedArc = document.getElementById('donut-planned-arc');
+      const plannedRow = document.getElementById('donut-stat-planned-row');
+      if (hasPlanned && plannedTotals.kcal > 0) {
+        const remainingCircleSpace = Math.max(0, CIRCUMFERENCE - mainDashLen);
+        const plannedDashLen = Math.min(remainingCircleSpace, (plannedTotals.kcal / targets.calories) * CIRCUMFERENCE);
+        plannedArc.setAttribute('stroke-dasharray', `${plannedDashLen.toFixed(2)} ${CIRCUMFERENCE.toFixed(2)}`);
+        plannedArc.setAttribute('stroke-dashoffset', `${(-mainDashLen).toFixed(2)}`);
+        document.getElementById('donut-planned-title').textContent = `Rencana: +${formatInt(plannedTotals.kcal)} kkal`;
+
+        plannedRow.classList.remove('hidden');
+        plannedRow.classList.add('flex');
+        document.getElementById('donut-stat-projected').textContent = `${formatInt(totals.kcal + plannedTotals.kcal)} kkal`;
+      } else {
+        plannedArc.setAttribute('stroke-dasharray', `0 ${CIRCUMFERENCE.toFixed(2)}`);
+        plannedRow.classList.add('hidden');
+        plannedRow.classList.remove('flex');
+      }
+
+      document.getElementById('donut-day-badge').textContent = dayObj.shortLabel;
+      document.getElementById('donut-center-pct').textContent = `${displayPct}%`;
+      document.getElementById('donut-center-kcal').textContent = `${formatInt(totals.kcal)} kkal`;
+      document.getElementById('donut-legend-dot').className = dotClass;
+      document.getElementById('donut-stat-consumed').textContent = `${formatInt(totals.kcal)} kkal`;
+      document.getElementById('donut-stat-target').textContent = `${formatInt(targets.calories)} kkal`;
+
+      const remCal = Math.round(targets.calories - totals.kcal);
+      const remLabel = document.getElementById('donut-stat-rem-label');
+      const remVal = document.getElementById('donut-stat-rem-val');
+      if (remCal < 0) {
+        remLabel.textContent = 'Surplus Kalori';
+        remVal.textContent = `+${formatInt(Math.abs(remCal))} kkal`;
+        remVal.className = 'font-extrabold text-rose-600 tabular-nums';
+      } else {
+        remLabel.textContent = 'Sisa Kuota Harian';
+        remVal.textContent = `${formatInt(remCal)} kkal`;
+        remVal.className = 'font-extrabold text-emerald-700 tabular-nums';
+      }
+    }
+
+    /**
+     * RENDER TAB HARI & KONTROL GYM DAY
+     */
+    function renderDayTabs() {
+      const container = document.getElementById('day-tabs-container');
+      const dayIds = getChronologicalDayIds();
+
+      container.innerHTML = dayIds
+        .map((dayId) => {
+          const dayObj = daysState[dayId];
+          const isSelected = dayId === activeDayId;
+          const gymIcon = dayObj.gymDay ? '<span>🏋️</span>' : '';
+
+          const btnClass = isSelected
+            ? 'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition inline-flex items-center gap-1.5 cursor-pointer bg-slate-900 text-white shadow-xs'
+            : 'px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition inline-flex items-center gap-1.5 cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200/70';
+
+          return `
+            <button
+              type="button"
+              role="tab"
+              aria-selected="${isSelected}"
+              onclick="selectDay('${dayId}')"
+              class="${btnClass}"
+            >
+              ${gymIcon}
+              <span>${escapeHtml(dayObj.shortLabel)}</span>
+            </button>
+          `;
+        })
+        .join('');
+    }
+
+    function renderGymDayControls(dayObj) {
+      const toggleBtn = document.getElementById('btn-gym-day-toggle');
+      const focusSelector = document.getElementById('gym-focus-selector');
+      const focusPillsContainer = document.getElementById('gym-focus-pills');
+
+      if (dayObj.gymDay) {
+        toggleBtn.className =
+          'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition cursor-pointer';
+        toggleBtn.innerHTML = '<span>🏋️ Gym Day: Aktif ✓</span>';
+
+        focusSelector.classList.remove('hidden');
+        focusSelector.classList.add('inline-flex');
+
+        const activeFocus = dayObj.gymFocus || 'Umum';
+        focusPillsContainer.innerHTML = GYM_FOCUS_OPTIONS.map((focus) => {
+          const isFocusActive = focus === activeFocus;
+          const pillCls = isFocusActive
+            ? 'px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-2xs transition cursor-pointer'
+            : 'px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition cursor-pointer';
+          return `
+            <button type="button" onclick="setActiveGymFocus('${focus}')" class="${pillCls}">
+              ${focus}
+            </button>
+          `;
+        }).join('');
+      } else {
+        toggleBtn.className =
+          'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/90 transition cursor-pointer';
+        toggleBtn.innerHTML = '<span>🏋️ Tandai Gym Day</span>';
+
+        focusSelector.classList.add('hidden');
+        focusSelector.classList.remove('inline-flex');
+      }
+    }
+
+    function toggleActiveGymDay() {
+      const dayObj = daysState[activeDayId];
+      if (!dayObj) return;
+      dayObj.gymDay = !dayObj.gymDay;
+      if (dayObj.gymDay) {
+        dayObj.gymFocus = dayObj.gymFocus || 'Umum';
+        showToast(`🏋️ ${dayObj.shortLabel} ditandai sebagai Gym Day (${dayObj.gymFocus})!`, 'emerald');
+      } else {
+        dayObj.gymFocus = '';
+        showToast(`Status Gym Day pada ${dayObj.shortLabel} dinonaktifkan.`, 'slate');
+      }
+      saveState();
+      renderDashboard();
+      if (appsScriptUrl) pushToGoogleSheets(false);
+    }
+
+    function setActiveGymFocus(focus) {
+      const dayObj = daysState[activeDayId];
+      if (!dayObj) return;
+      dayObj.gymDay = true;
+      dayObj.gymFocus = focus;
+      saveState();
+      renderDashboard();
+      showToast(`Fokus latihan ${dayObj.shortLabel} diatur ke ${focus}.`, 'emerald');
+      if (appsScriptUrl) pushToGoogleSheets(false);
+    }
+
+    function toggleNewDayInput(forceOpen) {
+      const btn = document.getElementById('btn-add-day-toggle');
+      const form = document.getElementById('new-day-inline-form');
+      const input = document.getElementById('new-day-date-input');
+      const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : form.classList.contains('hidden');
+
+      if (shouldOpen) {
+        // Default ke +1 hari setelah tanggal terakhir
+        const ids = getChronologicalDayIds();
+        const lastId = ids[ids.length - 1] || TODAY_DATE_ID;
+        const parts = lastId.split('-').map(Number);
+        const nextDt = new Date(parts[0], parts[1] - 1, parts[2] + 1);
+        const yyyy = nextDt.getFullYear();
+        const mm = String(nextDt.getMonth() + 1).padStart(2, '0');
+        const dd = String(nextDt.getDate()).padStart(2, '0');
+        input.value = `${yyyy}-${mm}-${dd}`;
+
+        btn.classList.add('hidden');
+        form.classList.remove('hidden');
+        form.classList.add('inline-flex');
+      } else {
+        form.classList.add('hidden');
+        form.classList.remove('inline-flex');
+        btn.classList.remove('hidden');
+      }
+    }
+
+    function confirmCreateNewDay() {
+      const dateVal = document.getElementById('new-day-date-input').value;
+      if (!dateVal) {
+        showToast('Pilih tanggal terlebih dahulu.', 'amber');
+        return;
+      }
+      const dayObj = ensureDayExists(dateVal);
+      activeDayId = dateVal;
+      toggleNewDayInput(false);
+      saveState();
+      renderDashboard();
+      showToast(`Hari ${dayObj.shortLabel} siap dicatat.`, 'emerald');
+      if (appsScriptUrl) pushToGoogleSheets(false);
+    }
+
+    /**
+     * RENDER GRAFIK BATANG TREN KALORI & PROTEIN (KARTU KIRI BAWAH)
+     */
+    function renderTrendChart() {
+      const targets = getTargets();
+      const allIds = getChronologicalDayIds();
+      const gymDaysCount = allIds.filter((id) => daysState[id] && daysState[id].gymDay).length;
+
+      document.getElementById('trend-gym-counter').textContent = `🏋️ ${gymDaysCount} Hari Gym tercatat`;
+
+      // Hitung rata-rata kalori & protein dari hari-hari yang memiliki asupan
+      const activeLoggedDays = allIds.filter((id) => calculateDayTotals(daysState[id]).totals.kcal > 0);
+      if (activeLoggedDays.length > 0) {
+        const sumCal = activeLoggedDays.reduce((s, id) => s + calculateDayTotals(daysState[id]).totals.kcal, 0);
+        const sumPro = activeLoggedDays.reduce((s, id) => s + calculateDayTotals(daysState[id]).totals.p, 0);
+        document.getElementById('trend-avg-cal').textContent = `${formatInt(sumCal / activeLoggedDays.length)} kkal`;
+        document.getElementById('trend-avg-pro').textContent = `${formatDec(sumPro / activeLoggedDays.length)} g/hari`;
+      }
+
+      const displayIds = allIds.slice(-4);
+      const maxScaleCal = Math.max(2500, Math.round(targets.calories * 1.3));
+      const targetLineBottomPct = Math.min(96, (targets.calories / maxScaleCal) * 100);
+      const proScaleMax = Math.max(150, Math.round(targets.protein * 1.7));
+
+      let barsHtml = `
+        <div class="relative h-64 w-full select-none pt-6 pb-2 px-1 sm:px-3">
+          <div
+            class="absolute left-1 right-1 sm:left-3 sm:right-3 border-t-2 border-dashed border-slate-400/80 z-10 pointer-events-none flex justify-end"
+            style="bottom: calc(${targetLineBottomPct}% * 0.72 + 2.8rem)"
+          >
+            <span class="-mt-5 px-2 py-0.5 rounded bg-slate-800 text-white text-[10px] font-semibold tracking-tight shadow-xs tabular-nums">
+              Target: ${formatInt(targets.calories)} kkal
+            </span>
+          </div>
+
+          <div class="h-full flex items-end justify-around gap-2 sm:gap-4 relative z-20">
+      `;
+
+      displayIds.forEach((id) => {
+        const d = daysState[id];
+        const { totals, plannedTotals, hasPlanned } = calculateDayTotals(d);
+        const isSelected = id === activeDayId;
+        const isSurplus = totals.kcal > targets.calories;
+
+        const calHeightPct = Math.min(100, Math.round((totals.kcal / maxScaleCal) * 100));
+        const plannedHeightPct = hasPlanned
+          ? Math.min(100 - calHeightPct, Math.round((plannedTotals.kcal / maxScaleCal) * 100))
+          : 0;
+        const proHeightPct = Math.min(100, Math.round((totals.p / proScaleMax) * 100));
+
+        const calBarColor = isSurplus
+          ? 'bg-rose-500 group-hover:bg-rose-600'
+          : 'bg-emerald-500 group-hover:bg-emerald-600';
+
+        const ringClass = isSelected
+          ? 'bg-slate-100/95 ring-2 ring-slate-900/15'
+          : 'hover:bg-slate-50';
+
+        const gymLabelHtml = d.gymDay
+          ? `<span class="mt-0.5 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-[10px] font-bold leading-tight">🏋️ Gym Day${d.gymFocus ? ' · ' + escapeHtml(d.gymFocus) : ''}</span>`
+          : `<span class="mt-0.5 block text-[10px] font-semibold ${d.isToday ? 'text-emerald-600' : 'text-slate-400'}">${d.isToday ? 'Hari Ini' : 'Rest Day'}</span>`;
+
+        barsHtml += `
+          <button
+            type="button"
+            onclick="selectDay('${id}')"
+            class="group flex-1 max-w-[135px] h-full flex flex-col justify-end items-center rounded-xl p-1.5 transition cursor-pointer ${ringClass}"
+            title="Klik untuk melihat detail ${escapeHtml(d.shortLabel)}"
+          >
+            <div class="mb-1.5 text-center tabular-nums">
+              <div class="text-xs font-extrabold ${isSurplus ? 'text-rose-600' : 'text-slate-800'}">
+                ${formatInt(totals.kcal)}
+              </div>
+              <div class="text-[10px] font-semibold text-blue-600">
+                P: ${formatDec(totals.p)}g
+              </div>
+            </div>
+
+            <div class="w-full h-[66%] flex items-end justify-center gap-1.5 px-1">
+              <div class="w-6 sm:w-8 h-full bg-slate-100 rounded-t-lg flex flex-col justify-end overflow-hidden relative">
+                ${
+                  hasPlanned
+                    ? `<div class="w-full bg-amber-300/75 border-t border-dashed border-amber-600 bar-transition" style="height: ${plannedHeightPct}%" title="Proyeksi rencana: +${formatInt(plannedTotals.kcal)} kkal"></div>`
+                    : ''
+                }
+                <div class="w-full ${calBarColor} rounded-t-md bar-transition" style="height: ${Math.max(4, calHeightPct)}%"></div>
+              </div>
+
+              <div class="w-3.5 sm:w-4 h-full bg-blue-50 rounded-t-lg flex flex-col justify-end overflow-hidden">
+                <div class="w-full bg-blue-500 group-hover:bg-blue-600 rounded-t-md bar-transition" style="height: ${Math.max(6, proHeightPct)}%"></div>
+              </div>
+            </div>
+
+            <div class="mt-2 text-center">
+              <span class="block text-xs font-bold ${isSelected ? 'text-slate-900' : 'text-slate-600'}">
+                ${escapeHtml(d.shortLabel)}
+              </span>
+              ${gymLabelHtml}
+            </div>
+          </button>
+        `;
+      });
+
+      barsHtml += `
+          </div>
+        </div>
+      `;
+
+      document.getElementById('trend-chart-container').innerHTML = barsHtml;
+    }
+
+    /**
+     * RENDER DAFTAR CATATAN ASUPAN HARIAN (KARTU KANAN BAWAH)
+     */
+    function renderMealLogCard(dayObj, totals, plannedTotals, hasPlanned) {
+      const targets = getTargets();
+      const eatenCount = dayObj.items.filter((i) => i.status === 'eaten').length;
+      const plannedCount = dayObj.items.filter((i) => i.status === 'planned').length;
+
+      document.getElementById('log-day-pill').textContent = dayObj.shortLabel;
+      document.getElementById('log-total-badge').textContent = `${formatInt(totals.kcal)} kkal`;
+      document.getElementById('log-total-badge').className =
+        totals.kcal > targets.calories
+          ? 'px-3 py-1 rounded-xl text-xs sm:text-sm font-extrabold bg-rose-50 text-rose-700 border border-rose-200/70 tabular-nums'
+          : 'px-3 py-1 rounded-xl text-xs sm:text-sm font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/70 tabular-nums';
+
+      document.getElementById('log-summary-subtitle').textContent =
+        plannedCount > 0
+          ? `${eatenCount} menu dikonsumsi • ${plannedCount} item rencana`
+          : `${eatenCount} menu tercatat`;
+
+      // Callout banner untuk item rencana
+      const firstPlanned = dayObj.items.find((i) => i.status === 'planned');
+      const calloutEl = document.getElementById('planned-callout');
+      if (firstPlanned) {
+        document.getElementById('planned-callout-text').innerHTML =
+          `Rencana belum dihitung ke aktual: <strong>${escapeHtml(firstPlanned.name)} (${formatInt(firstPlanned.kcal)} kkal | ${formatDec(firstPlanned.p)}g Protein)</strong>.`;
+        calloutEl.classList.remove('hidden');
+      } else {
+        calloutEl.classList.add('hidden');
+      }
+
+      const listContainer = document.getElementById('meal-log-list');
+      if (dayObj.items.length === 0) {
+        listContainer.innerHTML = `
+          <div class="p-8 text-center text-xs sm:text-sm text-slate-400">
+            Belum ada catatan asupan untuk ${escapeHtml(dayObj.shortLabel)}. Klik <strong>+ Tambah Menu</strong> atau <strong>⚡ Tempel Data Chat</strong>.
+          </div>
+        `;
+      } else {
+        listContainer.innerHTML = dayObj.items
+          .map((item) => {
+            const isPlanned = item.status === 'planned';
+            const rowBg = isPlanned ? 'bg-amber-50/50' : 'hover:bg-slate-50/80';
+
+            const statusActionHtml = isPlanned
+              ? `
+                <button
+                  type="button"
+                  onclick="togglePlannedItem('${dayObj.id}', '${item.id}')"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-2xs transition cursor-pointer"
+                >
+                  <span>✓ Tandai Sudah Dimakan</span>
+                </button>
+              `
+              : item.isPlanned
+                ? `
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                    ✓ Dimakan
+                  </span>
+                  <button
+                    type="button"
+                    onclick="togglePlannedItem('${dayObj.id}', '${item.id}')"
+                    class="text-[11px] text-slate-400 hover:text-slate-600 underline cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                `
+                : `
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600">
+                    ✓ Tercatat
+                  </span>
+                `;
+
+            return `
+              <div class="px-5 sm:px-6 py-3.5 ${rowBg} transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                <div class="space-y-1 min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="px-2 py-0.5 rounded-md text-[11px] font-bold ${isPlanned ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">
+                      ${escapeHtml(item.time)}
+                    </span>
+                    <span class="text-xs sm:text-sm font-bold text-slate-900 break-words">
+                      ${escapeHtml(item.name)}
+                    </span>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-3 text-xs tabular-nums">
+                    <span class="font-extrabold text-slate-800">${formatInt(item.kcal)} kkal</span>
+                    <span class="font-semibold text-blue-600">P: ${formatDec(item.p)}g</span>
+                    <span class="font-semibold text-amber-600">L: ${formatDec(item.l)}g</span>
+                    <span class="font-medium text-slate-500">K: ${formatDec(item.k)}g</span>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                  ${statusActionHtml}
+                  <button
+                    type="button"
+                    onclick="deleteItem('${dayObj.id}', '${item.id}')"
+                    class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                    title="Hapus item"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+      }
+
+      // Footer Total Harian
+      const footerEl = document.getElementById('meal-log-footer');
+      let footerHtml = `
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+          <span class="font-bold text-slate-800">Total Aktual (${escapeHtml(dayObj.shortLabel)})</span>
+          <div class="flex flex-wrap items-center gap-3 tabular-nums">
+            <span class="font-extrabold text-slate-900">${formatInt(totals.kcal)} kkal</span>
+            <span class="font-bold text-blue-700">P: ${formatDec(totals.p)}g</span>
+            <span class="font-bold text-amber-700">L: ${formatDec(totals.l)}g</span>
+            <span class="font-semibold text-slate-600">K: ${formatDec(totals.k)}g</span>
+          </div>
+        </div>
+      `;
+
+      if (hasPlanned) {
+        footerHtml += `
+          <div class="mt-2 pt-2 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-amber-900 tabular-nums">
+            <span>Proyeksi + Rencana:</span>
+            <span>${formatInt(totals.kcal + plannedTotals.kcal)} kkal (P: ${formatDec(totals.p + plannedTotals.p)}g | L: ${formatDec(totals.l + plannedTotals.l)}g | K: ${formatDec(totals.k + plannedTotals.k)}g)</span>
+          </div>
+        `;
+      }
+
+      footerEl.innerHTML = footerHtml;
+    }
+
+    /**
+     * INTERAKSI & KONTROL ITEM
+     */
+    function selectDay(dayId) {
+      if (!daysState[dayId]) return;
+      activeDayId = dayId;
+      renderDashboard();
+    }
+
+    function toggleFirstPlannedItem() {
+      const currentDay = daysState[activeDayId];
+      if (!currentDay) return;
+      const planned = currentDay.items.find((i) => i.status === 'planned');
+      if (planned) {
+        togglePlannedItem(activeDayId, planned.id);
+      }
+    }
+
+    function togglePlannedItem(dayId, itemId) {
+      const dayObj = daysState[dayId];
+      if (!dayObj) return;
+      const item = dayObj.items.find((i) => i.id === itemId);
+      if (!item) return;
+
+      item.status = item.status === 'planned' ? 'eaten' : 'planned';
+      showToast(
+        item.status === 'eaten'
+          ? `${item.name} ditandai sudah dimakan.`
+          : `${item.name} dikembalikan ke status rencana.`,
+        item.status === 'eaten' ? 'emerald' : 'amber'
+      );
+
+      saveState();
+      renderDashboard();
+      if (appsScriptUrl) pushToGoogleSheets(false);
+    }
+
+    function deleteItem(dayId, itemId) {
+      const dayObj = daysState[dayId];
+      if (!dayObj) return;
+      dayObj.items = dayObj.items.filter((i) => i.id !== itemId);
+      saveState();
+      renderDashboard();
+      showToast('Item berhasil dihapus.', 'slate');
+      if (appsScriptUrl) pushToGoogleSheets(false);
+    }
+
+    /**
+     * MODAL 1: EDIT BERAT BADAN & TARGET HARIAN
+     */
+    function openProfileModal() {
+      const targets = getTargets();
+      document.getElementById('input-weigh-date').value = activeDayId || TODAY_DATE_ID;
+      document.getElementById('input-current-weight').value = profileState.currentWeight;
+      document.getElementById('input-start-weight').value = profileState.startWeight;
+      document.getElementById('input-projected-range').value = profileState.projectedRange || '87,0 – 87,5 kg';
+
+      document.getElementById('input-target-kcal').value = Math.round(targets.calories);
+      document.getElementById('input-target-pro').value = targets.protein;
+      document.getElementById('input-target-fat').value = targets.fat;
+      document.getElementById('input-target-carb').value = targets.carbs;
+
+      updateWeightPreviewInModal();
+      renderWeightHistoryList();
+
+      const modal = document.getElementById('modal-profile-targets');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => document.getElementById('input-current-weight').focus(), 50);
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('modal-profile-targets');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function updateWeightPreviewInModal() {
+      const cw = parseFloat(document.getElementById('input-current-weight').value) || 0;
+      const sw = parseFloat(document.getElementById('input-start-weight').value) || 0;
+      const diff = cw - sw;
+      const projMin = Math.max(40, cw - 2.0);
+      const projMax = Math.max(40, cw - 1.5);
+
+      const diffEl = document.getElementById('modal-weight-diff-preview');
+      diffEl.textContent = `${diff <= 0 ? '' : '+'}${formatDec(diff, 1)} kg`;
+      diffEl.className = `font-extrabold tabular-nums ${diff <= 0 ? 'text-emerald-700' : 'text-amber-700'}`;
+
+      document.getElementById('modal-weight-proj-preview').textContent =
+        `${formatDec(projMin, 1)} – ${formatDec(projMax, 1)} kg`;
+    }
+
+    function renderWeightHistoryList() {
+      const container = document.getElementById('weight-history-list');
+      const list = [...(profileState.weightHistory || [])].sort((a, b) => b.date.localeCompare(a.date));
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="px-3 py-2.5 text-xs text-slate-400 text-center">Belum ada riwayat timbang.</div>`;
+        return;
+      }
+
+      container.innerHTML = list
+        .map(
+          (entry) => `
+          <div class="px-3 py-2 flex items-center justify-between text-xs bg-white/80">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-slate-700 tabular-nums">${escapeHtml(entry.date)}</span>
+              ${entry.note ? `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-medium">${escapeHtml(entry.note)}</span>` : ''}
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="font-extrabold text-slate-900 tabular-nums">${formatDec(entry.weight, 1)} kg</span>
+              <button
+                type="button"
+                onclick="deleteWeightEntry('${escapeHtml(entry.id)}')"
+                class="text-slate-400 hover:text-rose-600 px-1 rounded cursor-pointer"
+                title="Hapus entri timbang"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        `
+        )
+        .join('');
+    }
+
+    function deleteWeightEntry(entryId) {
+      profileState.weightHistory = (profileState.weightHistory || []).filter((item) => item.id !== entryId);
+      saveState();
+      renderWeightHistoryList();
+      showToast('Entri riwayat timbang dihapus.', 'slate');
+      if (appsScriptUrl) pushToGoogleSheets(false);
+    }
+
+    function autoCalculateFromWeight() {
+      const cw = parseFloat(document.getElementById('input-current-weight').value);
+      if (!cw || isNaN(cw) || cw < 30) {
+        showToast('Masukkan berat badan terkini yang valid terlebih dahulu.', 'amber');
+        return;
+      }
+
+      // Penyesuaian proporsional dari baseline 89,0 kg -> 1.863 kkal
+      const ratio = cw / 89.0;
+      const recommendedKcal = Math.max(1200, Math.round(1863 * ratio));
+      const recommendedPro = Number((83.81 * ratio).toFixed(2));
+      const recommendedFat = Math.round(62 * ratio);
+      const recommendedCarb = Math.round(242 * ratio);
+
+      const projMin = Math.max(40, cw - 2.0);
+      const projMax = Math.max(40, cw - 1.5);
+
+      document.getElementById('input-target-kcal').value = recommendedKcal;
+      document.getElementById('input-target-pro').value = recommendedPro;
+      document.getElementById('input-target-fat').value = recommendedFat;
+      document.getElementById('input-target-carb').value = recommendedCarb;
+      document.getElementById('input-projected-range').value = `${formatDec(projMin, 1)} – ${formatDec(projMax, 1)} kg`;
+
+      showToast(`Target disesuaikan otomatis untuk ${formatDec(cw, 1)} kg (${formatInt(recommendedKcal)} kkal).`, 'emerald');
+    }
+
+    function saveProfileAndTargets(event) {
+      event.preventDefault();
+      const weighDate = document.getElementById('input-weigh-date').value || TODAY_DATE_ID;
+      const cw = parseFloat(document.getElementById('input-current-weight').value);
+      const sw = parseFloat(document.getElementById('input-start-weight').value);
+      const projStr = document.getElementById('input-projected-range').value.trim();
+
+      const calories = parseFloat(document.getElementById('input-target-kcal').value);
+      const protein = parseFloat(document.getElementById('input-target-pro').value);
+      const fat = parseFloat(document.getElementById('input-target-fat').value);
+      const carbs = parseFloat(document.getElementById('input-target-carb').value);
+
+      if ([cw, sw, calories, protein, fat, carbs].some((v) => isNaN(v) || v <= 0)) {
+        showToast('Pastikan seluruh angka berat badan dan target makro valid.', 'amber');
+        return;
+      }
+
+      profileState.currentWeight = Number(cw.toFixed(1));
+      profileState.startWeight = Number(sw.toFixed(1));
+      if (projStr) {
+        profileState.projectedRange = projStr;
+      }
+      profileState.targets = {
+        calories: Math.round(calories),
+        protein: Number(protein.toFixed(2)),
+        fat: Number(fat.toFixed(1)),
+        carbs: Number(carbs.toFixed(1)),
+      };
+
+      const history = Array.isArray(profileState.weightHistory) ? [...profileState.weightHistory] : [];
+      const existingIdx = history.findIndex((item) => item.date === weighDate);
+      if (existingIdx >= 0) {
+        history[existingIdx].weight = profileState.currentWeight;
+        history[existingIdx].note = weighDate === TODAY_DATE_ID ? 'Terkini' : history[existingIdx].note || 'Timbang';
+      } else {
+        history.push({
+          id: 'wh-' + Date.now(),
+          date: weighDate,
+          weight: profileState.currentWeight,
+          note: weighDate === TODAY_DATE_ID ? 'Terkini' : 'Timbang',
+        });
+      }
+      history.sort((a, b) => a.date.localeCompare(b.date));
+      profileState.weightHistory = history;
+
+      saveState();
+      closeProfileModal();
+      renderDashboard();
+      showToast(`Berat (${formatDec(cw, 1)} kg) & target (${formatInt(calories)} kkal) diperbarui.`, 'emerald');
+      if (appsScriptUrl) pushToGoogleSheets(false);
+    }
+
+    /**
+     * MODAL 2: TEMPEL DATA CHAT (MENU + GYM DAY)
+     */
+    function openQuickPasteModal() {
+      const currentDay = daysState[activeDayId] || daysState[TODAY_DATE_ID];
+      document.getElementById('quick-paste-target-date').textContent = currentDay.shortLabel;
+      const modal = document.getElementById('modal-quick-paste');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      const input = document.getElementById('quick-paste-input');
+      input.value = '';
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function closeQuickPasteModal() {
+      const modal = document.getElementById('modal-quick-paste');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function applyQuickPaste() {
+      const rawText = document.getElementById('quick-paste-input').value.trim();
+      if (!rawText) {
+        showToast('Tempel kode JSON dari chat terlebih dahulu.', 'amber');
+        return;
+      }
+
+      try {
+        const cleaned = rawText
+          .replace(/^```(?:json)?/i, '')
+          .replace(/```$/i, '')
+          .trim();
+
+        const parsed = JSON.parse(cleaned);
+        const list = Array.isArray(parsed) ? parsed : [parsed];
+        if (list.length === 0) throw new Error('Data kosong');
+
+        let targetDateId = activeDayId || TODAY_DATE_ID;
+        let addedMealsCount = 0;
+        let updatedGymCount = 0;
+
+        list.forEach((entry, idx) => {
+          if (!entry || typeof entry !== 'object') throw new Error('Objek tidak valid');
+
+          const entryDate = (entry.date || activeDayId || TODAY_DATE_ID).toString().trim();
+          const dayObj = ensureDayExists(entryDate);
+          targetDateId = entryDate;
+
+          // Update status Gym Day jika ada di JSON
+          if (typeof entry.gymDay === 'boolean') {
+            dayObj.gymDay = entry.gymDay;
+            dayObj.gymFocus = entry.gymDay ? String(entry.gymFocus || dayObj.gymFocus || 'Umum') : '';
+            updatedGymCount++;
+          } else if (typeof entry.gymFocus === 'string' && entry.gymFocus.trim()) {
+            dayObj.gymDay = true;
+            dayObj.gymFocus = entry.gymFocus.trim();
+            updatedGymCount++;
+          }
+
+          // Jika menyertakan array items di dalam objek hari
+          if (Array.isArray(entry.items)) {
+            entry.items.forEach((subItem, subIdx) => {
+              const st = subItem.status === 'planned' || subItem.isPlanned ? 'planned' : 'eaten';
+              dayObj.items.push({
+                id: subItem.id ? String(subItem.id) : `chat-${Date.now()}-${idx}-${subIdx}`,
+                time: String(subItem.time || 'Makan'),
+                name: String(subItem.name || 'Menu dari Chat'),
+                kcal: Number(subItem.kcal ?? subItem.calories) || 0,
+                p: Number(subItem.p ?? subItem.protein) || 0,
+                l: Number(subItem.l ?? subItem.fat) || 0,
+                k: Number(subItem.k ?? subItem.carbs) || 0,
+                status: st,
+                isPlanned: st === 'planned',
+              });
+              addedMealsCount++;
+            });
+          } else if (entry.name || entry.kcal !== undefined || entry.calories !== undefined) {
+            const st = entry.status === 'planned' || entry.isPlanned ? 'planned' : 'eaten';
+            dayObj.items.push({
+              id: entry.id ? String(entry.id) : `chat-${Date.now()}-${idx}`,
+              time: String(entry.time || 'Makan'),
+              name: String(entry.name || 'Menu dari Chat'),
+              kcal: Number(entry.kcal ?? entry.calories) || 0,
+              p: Number(entry.p ?? entry.protein) || 0,
+              l: Number(entry.l ?? entry.fat) || 0,
+              k: Number(entry.k ?? entry.carbs) || 0,
+              status: st,
+              isPlanned: st === 'planned',
+            });
+            addedMealsCount++;
+          }
+        });
+
+        activeDayId = targetDateId;
+        saveState();
+        closeQuickPasteModal();
+        renderDashboard();
+
+        const parts = [];
+        if (addedMealsCount > 0) parts.push(`${addedMealsCount} menu ditambahkan`);
+        if (updatedGymCount > 0) parts.push('status Gym Day diperbarui');
+        showToast(parts.length > 0 ? `Berhasil: ${parts.join(' & ')}!` : 'Data berhasil diterapkan.', 'emerald');
+
+        if (appsScriptUrl) pushToGoogleSheets(false);
+      } catch (err) {
+        showToast('Format JSON tidak valid. Salin utuh mulai dari { sampai }.', 'amber');
+      }
+    }
+
+    /**
+     * MODAL 3: + TAMBAH MENU MANUAL
+     */
+    function openAddMealModal() {
+      document.getElementById('modal-meal-date').value = activeDayId || TODAY_DATE_ID;
+      document.getElementById('modal-meal-name').value = '';
+      document.getElementById('modal-meal-kcal').value = '';
+      document.getElementById('modal-meal-pro').value = '';
+      document.getElementById('modal-meal-fat').value = '';
+      document.getElementById('modal-meal-carb').value = '';
+      document.getElementById('modal-meal-status').value = 'eaten';
+
+      const modal = document.getElementById('modal-add-meal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => document.getElementById('modal-meal-name').focus(), 50);
+    }
+
+    function closeAddMealModal() {
+      const modal = document.getElementById('modal-add-meal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function handleAddMealSubmit(event) {
+      event.preventDefault();
+      const dateStr = document.getElementById('modal-meal-date').value || activeDayId || TODAY_DATE_ID;
+      const time = document.getElementById('modal-meal-time').value;
+      const name = document.getElementById('modal-meal-name').value.trim();
+      const kcal = parseFloat(document.getElementById('modal-meal-kcal').value) || 0;
+      const p = parseFloat(document.getElementById('modal-meal-pro').value) || 0;
+      const l = parseFloat(document.getElementById('modal-meal-fat').value) || 0;
+      const k = parseFloat(document.getElementById('modal-meal-carb').value) || 0;
+      const status = document.getElementById('modal-meal-status').value === 'planned' ? 'planned' : 'eaten';
+
+      if (!name) return;
+
+      const dayObj = ensureDayExists(dateStr);
+      dayObj.items.push({
+        id: 'manual-' + Date.now(),
+        time,
+        name,
+        kcal,
+        p,
+        l,
+        k,
+        status,
+        isPlanned: status === 'planned',
+      });
+
+      activeDayId = dateStr;
+      saveState();
+      closeAddMealModal();
+      renderDashboard();
+      showToast(`"${name}" ditambahkan ke ${dayObj.shortLabel}.`, 'emerald');
+      if (appsScriptUrl) pushToGoogleSheets(false);
+    }
+
+    /**
+     * MODAL 4: HUBUNGKAN GOOGLE SHEETS / EXCEL & SALIN EMBED URL TERPASANG
+     */
+    function openSheetsModal() {
+      document.getElementById('sheets-url-input').value = appsScriptUrl;
+      updateSyncStatusUI();
+      const modal = document.getElementById('modal-sheets-sync');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeSheetsModal() {
+      const modal = document.getElementById('modal-sheets-sync');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function saveAndSyncSheetsUrl() {
+      const val = document.getElementById('sheets-url-input').value.trim();
+      if (!val || !val.startsWith('http')) {
+        showToast('Masukkan URL Web App Apps Script yang valid (https://script.google.com/...).', 'amber');
+        return;
+      }
+      appsScriptUrl = val;
+      hasLoadedFromCloud = false; // Wajib tarik data dulu sebelum boleh menulis ulang
+      safeSetStorage(STORAGE_KEY_URL, val);
+      updateSyncStatusUI();
+      pullFromGoogleSheets(true);
+    }
+
+    function disconnectSheetsUrl() {
+      appsScriptUrl = '';
+      cloudSyncState = 'disconnected';
+      hasLoadedFromCloud = true;
+      safeRemoveStorage(STORAGE_KEY_URL);
+      document.getElementById('sheets-url-input').value = '';
+      updateSyncStatusUI();
+      showToast('Koneksi Google Sheets diputus.', 'slate');
+    }
+
+    function copyTextToClipboard(text, successMsg) {
+      const tempArea = document.createElement('textarea');
+      tempArea.value = text;
+      tempArea.setAttribute('readonly', '');
+      tempArea.style.position = 'fixed';
+      tempArea.style.opacity = '0';
+      document.body.appendChild(tempArea);
+      tempArea.select();
+      tempArea.setSelectionRange(0, tempArea.value.length);
+      try {
+        document.execCommand('copy');
+        showToast(successMsg, 'emerald');
+      } catch (e) {
+        showToast('Gagal menyalin otomatis. Silakan salin manual.', 'amber');
+      } finally {
+        document.body.removeChild(tempArea);
+      }
+    }
+
+    function copyAppsScriptCode() {
+      const codeText = document.getElementById('apps-script-template').value;
+      copyTextToClipboard(codeText, 'Kode Apps Script berhasil disalin!');
+    }
+
+    function copyEmbedHtmlWithUrl() {
+      const inputUrl = document.getElementById('sheets-url-input').value.trim() || appsScriptUrl;
+      if (!inputUrl || !inputUrl.startsWith('http')) {
+        showToast('Masukkan dan simpan URL Web App (/exec) Anda terlebih dahulu.', 'amber');
+        return;
+      }
+      const baseHtml = CLEAN_HTML_SNAPSHOT || ('<!DOCTYPE html>\n' + document.documentElement.outerHTML);
+      const injectedHtml = baseHtml.replace(
+        /const DEFAULT_APPS_SCRIPT_URL = '[^']*';/,
+        `const DEFAULT_APPS_SCRIPT_URL = ${JSON.stringify(inputUrl)};`
+      );
+      copyTextToClipboard(
+        injectedHtml,
+        'Kode HTML siap embed (dengan URL terpasang) disalin! Tempel ke Google Sites.'
+      );
+    }
+
+    /**
+     * TOAST & ESCAPE HELPER
+     */
+    function showToast(message, tone = 'emerald') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+
+      const colors = {
+        emerald: 'bg-slate-900 text-white border-emerald-500/60',
+        amber: 'bg-slate-900 text-white border-amber-500/60',
+        slate: 'bg-slate-800 text-white border-slate-600',
+      };
+
+      toast.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-lg text-xs sm:text-sm font-medium flex items-center justify-between gap-3 transition-all duration-300 ${colors[tone] || colors.emerald}`;
+      toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(6px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3400);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Inisialisasi saat halaman dimuat
+    window.addEventListener('DOMContentLoaded', () => {
+      CLEAN_HTML_SNAPSHOT = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      renderDashboard();
+      if (appsScriptUrl) {
+        pullFromGoogleSheets(false);
+      }
+    });
+  </script>
+</body>
+</html>
