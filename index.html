@@ -245,7 +245,7 @@
             <p class="text-sm font-bold text-emerald-900">Ketuk untuk Ambil Foto / Pilih Gambar</p>
             <p class="text-xs text-emerald-700 mt-0.5">Otomatis dikompres & dianalisis oleh Gemini AI</p>
           </div>
-          <input id="scanFileInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="handleScanImageSelect(event)">
+          <div class="grid grid-cols-2 gap-2.5">           <button type="button" onclick="triggerScanPicker(true)" class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/60 hover:bg-emerald-100/70 transition">             <span class="text-2xl mb-1">📷</span>             <span class="text-xs font-bold text-emerald-900">Buka Kamera</span>           </button>           <button type="button" onclick="triggerScanPicker(false)" class="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/60 hover:bg-blue-100/70 transition">             <span class="text-2xl mb-1">🖼️</span>             <span class="text-xs font-bold text-blue-900">Pilih dari Galeri</span>           </button>         </div>         <input id="scanFileInput" type="file" accept="image/*" class="hidden" onchange="handleScanImageSelect(event)">
         </label>
 
         <div id="scanPreviewBox" class="hidden space-y-2">
@@ -808,7 +808,16 @@
       document.getElementById('runScanBtn').disabled = true;
       openModal('scanModal');
     }
-
+function triggerScanPicker(useCamera) {
+      const inp = document.getElementById('scanFileInput');
+      inp.value = '';
+      if (useCamera) {
+        inp.setAttribute('capture', 'environment');
+      } else {
+        inp.removeAttribute('capture');
+      }
+      inp.click();
+    }
     function handleScanImageSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
